@@ -2,17 +2,12 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
   <meta name="mobile-web-app-capable" content="yes"/>
   <meta name="apple-mobile-web-app-capable" content="yes"/>
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
   <meta name="theme-color" content="#0b0c11"/>
   <title>GAA Match Tracker</title>
-  <style>
-    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
-    html,body{height:100%;background:#0b0c11;color:#edeae4;-webkit-tap-highlight-color:transparent;overscroll-behavior:none;}
-    #root{min-height:100%;display:flex;flex-direction:column;}
-  </style>
+  <style>*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}html,body{height:100%;background:#0b0c11;color:#edeae4;-webkit-tap-highlight-color:transparent;overscroll-behavior:none;}#root{min-height:100%;display:flex;flex-direction:column;}</style>
 </head>
 <body>
   <div id="root"></div>
@@ -316,9 +311,7 @@ var d=null!=c&&c.hydratedSources||null,e=!1,f="",g=aj;null!==c&&void 0!==c&&(!0=
 function(a,b,c){if(!Vd(b))throw Error(m(200));return Wd(null,a,b,!1,c)};Q.unmountComponentAtNode=function(a){if(!Vd(a))throw Error(m(40));return a._reactRootContainer?(yb(function(){Wd(null,null,a,!1,function(){a._reactRootContainer=null;a[Ja]=null})}),!0):!1};Q.unstable_batchedUpdates=Tf;Q.unstable_renderSubtreeIntoContainer=function(a,b,c,d){if(!Vd(c))throw Error(m(200));if(null==a||void 0===a._reactInternals)throw Error(m(38));return Wd(a,b,c,!1,d)};Q.version="18.3.1-next-f1338f8080-20240426"});
 })();
 </script>
-  <script>
-(function(){
-"use strict";
+  <script>(function(){
 function _extends() { return _extends = Object.assign ? Object.assign.bind() : function (n) { for (var e = 1; e < arguments.length; e++) { var t = arguments[e]; for (var r in t) ({}).hasOwnProperty.call(t, r) && (n[r] = t[r]); } return n; }, _extends.apply(null, arguments); }
 // ─────────────────────────────────────────────────────────────────────
 // GAA Match Tracker — full app component (drop-in for Vite/CRA)
@@ -2321,13 +2314,104 @@ function ScoreSpark(_ref7) {
 function LiveStatsTab(_ref8) {
   let events = _ref8.events,
     homeTeam = _ref8.homeTeam,
-    awayTeam = _ref8.awayTeam;
+    awayTeam = _ref8.awayTeam,
+    seconds = _ref8.seconds,
+    half = _ref8.half,
+    halfLength = _ref8.halfLength;
   const h = aggregateStats(events, "home");
   const a = aggregateStats(events, "away");
+  const hWin = winProb(events, seconds, half, halfLength);
+  const aWin = 100 - hWin;
 
   // headline comparison rows
   const rows = [["Shots", h.shots, a.shots, true], ["Scores", h.scores, a.scores, true], ["Conv %", `${h.conv}%`, `${a.conv}%`, true], ["Shot Rate", `${h.shotRate}%`, `${a.shotRate}%`, true], ["Possessions", h.possessions, a.possessions, true], ["Avg Poss (s)", `${h.avgPossSec}s`, `${a.avgPossSec}s`, null], ["BIP Time", fmtBIP(h.bip), fmtBIP(a.bip), null], ["Productivity", `${h.productivity}`, `${a.productivity}`, true], ["Expected Pts", h.xP.toFixed(1), a.xP.toFixed(1), true], ["xP +/-", `${h.xPDelta >= 0 ? "+" : ""}${h.xPDelta.toFixed(1)}`, `${a.xPDelta >= 0 ? "+" : ""}${a.xPDelta.toFixed(1)}`, true], ["SQI", h.sqi, a.sqi, true], ["Attack Speed", `${h.avgAttackSpeed}s`, `${a.avgAttackSpeed}s`, false], ["Wides", h.wides, a.wides, false], ["Off Post", h.posts, a.posts, false], ["Blocked", h.blocks, a.blocks, false], ["T/O Won", h.toWon, a.toWon, true], ["T/O Lost", h.toLost, a.toLost, false], ["Kickouts", `${h.kosWon}/${h.kos}`, `${a.kosWon}/${a.kos}`, null], ["KO Win %", `${h.kosPct}%`, `${a.kosPct}%`, true], ["Fouls", h.fouls, a.fouls, false], ["Cards", h.cards, a.cards, false]];
   return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    className: "card",
+    style: {
+      marginBottom: 14
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "card-h"
+  }, /*#__PURE__*/React.createElement("h3", null, "Win Probability"), /*#__PURE__*/React.createElement("span", {
+    className: "sec-aux"
+  }, "Gaussian model \xB7 live")), /*#__PURE__*/React.createElement("div", {
+    className: "card-b"
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      marginBottom: 8
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    className: "kpi-l",
+    style: {
+      color: "var(--home)",
+      marginBottom: 2
+    }
+  }, homeTeam.name), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontFamily: "var(--fm)",
+      fontSize: 32,
+      fontWeight: 700,
+      color: hWin > 50 ? "var(--score)" : "var(--home)"
+    }
+  }, hWin, "%")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      textAlign: "center",
+      color: "var(--t3)",
+      fontFamily: "var(--fCond)",
+      fontSize: 11,
+      letterSpacing: "0.1em"
+    }
+  }, hWin === 50 && events.length === 0 ? "PRE-MATCH" : hWin === 100 ? "WIN CERTAIN" : hWin === 0 ? "LOSS CERTAIN" : hWin >= 80 ? "STRONG FAV" : hWin >= 60 ? "LIKELY" : hWin >= 50 ? "MARGINAL" : "—"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      textAlign: "right"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "kpi-l",
+    style: {
+      color: "var(--away)",
+      marginBottom: 2
+    }
+  }, awayTeam.name), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontFamily: "var(--fm)",
+      fontSize: 32,
+      fontWeight: 700,
+      color: aWin > 50 ? "var(--score)" : "var(--away)"
+    }
+  }, aWin, "%"))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      height: 12,
+      borderRadius: 6,
+      background: "var(--bg-3)",
+      overflow: "hidden",
+      display: "flex"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: `${hWin}%`,
+      background: `linear-gradient(90deg,var(--home),var(--home)cc)`,
+      transition: "width .6s ease",
+      borderRadius: "6px 0 0 6px"
+    }
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      background: `linear-gradient(90deg,var(--away)cc,var(--away))`,
+      borderRadius: "0 6px 6px 0"
+    }
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "space-between",
+      marginTop: 6,
+      fontFamily: "var(--fm)",
+      fontSize: 10,
+      color: "var(--t3)"
+    }
+  }, /*#__PURE__*/React.createElement("span", null, "Based on score differential \xB7 remaining time \xB7 historical variance"), /*#__PURE__*/React.createElement("span", null, events.length === 0 ? "No data yet" : events.length + " events")))), /*#__PURE__*/React.createElement("div", {
     className: "col-2",
     style: {
       marginBottom: 20
@@ -5680,8 +5764,106 @@ function IndividualPerformance(_ref41) {
           fontWeight: 700
         }
       }, T.fl || "–"));
-    })())));
+    })())), rows.length > 0 && /*#__PURE__*/React.createElement("div", {
+      style: {
+        padding: "8px 12px",
+        borderTop: "1px solid var(--line-soft)",
+        display: "flex",
+        flexWrap: "wrap",
+        gap: 5
+      }
+    }, rows.map(p => /*#__PURE__*/React.createElement("button", {
+      key: p.pid,
+      className: "tbtn",
+      style: {
+        fontSize: 10,
+        padding: "3px 9px"
+      },
+      onClick: () => exportPlayerReport(p, tid, nm, rows, events, accent)
+    }, "\uD83D\uDCC4 #", p.num, " ", p.name))));
   }));
+}
+
+// ─── Individual Player PDF ────────────────────────────────────────────
+function exportPlayerReport(player, tid, teamName, allRows, events, accent) {
+  const matchDate = new Date().toLocaleDateString("en-IE", {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric"
+  });
+  const scoringRows = allRows.filter(p => p.shots > 0);
+  const teamAvg = {
+    shots: scoringRows.length ? +(scoringRows.reduce((s, p) => s + p.shots, 0) / scoringRows.length).toFixed(1) : 0,
+    xpDiff: allRows.length ? +(allRows.reduce((s, p) => s + p.xpDiff, 0) / allRows.length).toFixed(2) : 0,
+    toNet: allRows.length ? +(allRows.reduce((s, p) => s + p.toDiff, 0) / allRows.length).toFixed(1) : 0
+  };
+  const playerShots = events.filter(e => e.type === "shot" && e.team === tid && e.player === player.pid);
+  const esc = s => (s || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const col = accent.includes("home") ? "#003DA5" : "#9B1B30";
+  const bar = (val, avg, lo, hi) => {
+    const p = Math.min(Math.max((val - lo) / (hi - lo || 1) * 100, 0), 100);
+    const a = Math.min(Math.max((avg - lo) / (hi - lo || 1) * 100, 0), 100);
+    return `<div style="background:#eee;border-radius:4px;height:10px;position:relative">
+      <div style="background:${col};width:${p}%;height:100%;border-radius:4px"></div>
+      <div style="position:absolute;top:-3px;left:calc(${a}% - 1px);width:2px;height:16px;background:#888;border-radius:1px"></div>
+    </div>`;
+  };
+  const shotLog = playerShots.map(s => {
+    const fmtT = `${Math.floor((s.time || 0) / 60)}:${String((s.time || 0) % 60).padStart(2, "0")} H${s.half || 1}`;
+    const scored = ["goal", "point", "2point"].includes(s.outcome);
+    return `<tr><td style="padding:3px 8px;font-size:9pt">${fmtT}</td><td style="padding:3px 8px;font-size:9pt">${s.source || "play"}</td>
+    <td style="padding:3px 8px;font-size:9pt;font-weight:${scored ? 700 : 400};color:${scored ? "#1a8a3a" : "#c0392b"}">${s.outcome || "?"}</td>
+    <td style="padding:3px 8px;font-size:9pt;text-align:right">${shotXP(s).toFixed(3)}</td>
+    <td style="padding:3px 8px;font-size:9pt">${s.pressure ? "Yes" : "No"}</td>
+    ${s.videoTs ? `<td style="padding:3px 8px;font-size:9pt;color:#666">🎬 ${esc(s.videoTs)}</td>` : "<td></td>"}
+    </tr>`;
+  }).join("");
+  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"/><title>${esc(player.name)} — Report</title>
+<style>*{box-sizing:border-box;margin:0;padding:0;}body{font-family:'Helvetica Neue',Arial,sans-serif;color:#1a1a2e;}
+@page{size:A4;margin:13mm 14mm;}@media print{.np{display:none!important;}}
+.hdr{background:${col};color:#fff;padding:14px 18px;}
+.name{font-size:20pt;font-weight:900;letter-spacing:.04em;}
+.sub{font-size:8.5pt;opacity:.65;margin-top:3px;letter-spacing:.08em;text-transform:uppercase;}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin:10px 0;}
+.k{background:#f4f6fb;border-radius:5px;padding:8px 10px;text-align:center;}
+.kv{font-size:19pt;font-weight:700;color:${col}}.kl{font-size:7.5pt;color:#666;letter-spacing:.07em;text-transform:uppercase;margin-bottom:2px;}
+.ks{font-size:8pt;color:#999;margin-top:1px;}
+.st{font-size:10pt;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:${col};padding:7px 0 4px;border-bottom:2px solid ${col};margin:9px 0 6px;}
+table{width:100%;border-collapse:collapse;}th{background:${col};color:#fff;font-size:8pt;padding:4px 8px;text-align:left;}
+.cr{display:grid;grid-template-columns:110px 1fr 54px 54px;gap:7px;align-items:center;margin-bottom:7px;}
+.footer{font-size:7pt;color:#aaa;text-align:center;margin-top:8px;padding-top:5px;border-top:1px solid #ddd;}
+.pb{position:fixed;top:10px;right:10px;background:${col};color:#fff;border:none;padding:7px 14px;border-radius:5px;cursor:pointer;font-weight:700;font-size:11pt;z-index:99;}
+</style></head><body>
+<button class="pb np" onclick="window.print()">🖨 Print / Save PDF</button>
+<div class="hdr"><div class="name">#${esc(player.num)} ${esc(player.name)}</div>
+<div class="sub">${esc(teamName)} · Player Report · ${esc(matchDate)}</div></div>
+<div style="padding:0 2px">
+<div class="grid">
+  <div class="k"><div class="kl">Score</div><div class="kv" style="font-size:15pt">${player.goals}-${player.twos}-${player.pts}</div><div class="ks">${player.actPts} pts total</div></div>
+  <div class="k"><div class="kl">Shots</div><div class="kv">${player.shots}</div><div class="ks">Team avg ${teamAvg.shots}</div></div>
+  <div class="k"><div class="kl">xP Delta</div><div class="kv" style="color:${player.xpDiff >= 0 ? "#1a8a3a" : "#c0392b"};font-size:15pt">${(player.xpDiff >= 0 ? "+" : "") + player.xpDiff.toFixed(2)}</div><div class="ks">xP ${player.xp.toFixed(2)}</div></div>
+  <div class="k"><div class="kl">T/O Net</div><div class="kv" style="color:${player.toDiff >= 0 ? "#1a8a3a" : "#c0392b"};font-size:15pt">${(player.toDiff >= 0 ? "+" : "") + player.toDiff}</div><div class="ks">${player.toW}W / ${player.toL}L</div></div>
+</div>
+<div class="st">vs Team Average</div>
+<div class="cr"><span style="font-size:9pt;font-weight:600">Shots</span>${bar(player.shots, parseFloat(teamAvg.shots), 0, Math.max(player.shots, parseFloat(teamAvg.shots)) * 1.5)}<span style="font-size:9pt;font-weight:700;color:${col};text-align:right">${player.shots}</span><span style="font-size:8pt;color:#999;text-align:right">avg ${teamAvg.shots}</span></div>
+<div class="cr"><span style="font-size:9pt;font-weight:600">xP Delta</span>${bar(player.xpDiff + 5, parseFloat(teamAvg.xpDiff) + 5, 0, 10)}<span style="font-size:9pt;font-weight:700;color:${col};text-align:right">${(player.xpDiff >= 0 ? "+" : "") + player.xpDiff.toFixed(2)}</span><span style="font-size:8pt;color:#999;text-align:right">avg ${(parseFloat(teamAvg.xpDiff) >= 0 ? "+" : "") + teamAvg.xpDiff}</span></div>
+<div class="cr"><span style="font-size:9pt;font-weight:600">T/O Net</span>${bar(player.toDiff + 5, parseFloat(teamAvg.toNet) + 5, 0, 10)}<span style="font-size:9pt;font-weight:700;color:${col};text-align:right">${(player.toDiff >= 0 ? "+" : "") + player.toDiff}</span><span style="font-size:8pt;color:#999;text-align:right">avg ${(parseFloat(teamAvg.toNet) >= 0 ? "+" : "") + teamAvg.toNet}</span></div>
+${playerShots.length > 0 ? `<div class="st">Shot Log</div><table><thead><tr><th>Time</th><th>Source</th><th>Outcome</th><th style="text-align:right">xP</th><th>Pressure</th><th>Video</th></tr></thead><tbody>${shotLog}</tbody></table>` : ""}
+<div class="footer">GAA Match Tracker · #${esc(player.num)} ${esc(player.name)} · ${esc(teamName)} · ${esc(matchDate)}</div>
+</div></body></html>`;
+  const w = window.open("", "_blank", "width=800,height=1000");
+  if (!w) {
+    alert("Allow pop-ups to export the player report.");
+    return;
+  }
+  w.document.write(html);
+  w.document.close();
+  setTimeout(() => {
+    try {
+      w.print();
+    } catch (e) {}
+  }, 600);
 }
 
 // ════════════════════════════════════════════════════════════════════
@@ -6531,7 +6713,14 @@ function LogTab(_ref48) {
       style: {
         marginTop: 2
       }
-    }, lab.sub)), isScore && /*#__PURE__*/React.createElement("span", {
+    }, lab.sub), e.videoTs && /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontFamily: "var(--fm)",
+        fontSize: 9,
+        color: "var(--t3)",
+        marginTop: 1
+      }
+    }, "\uD83C\uDFAC ", e.videoTs)), isScore && /*#__PURE__*/React.createElement("span", {
       className: "ev-pts"
     }, "+", lab.pts), isMiss && /*#__PURE__*/React.createElement("span", {
       className: "ev-pts miss"
@@ -7047,7 +7236,41 @@ function ActionModal(_ref54) {
     className: "tag"
   }, titles[action.type] || action.type), /*#__PURE__*/React.createElement("div", {
     className: "ttl"
-  }, stepLabels[action.step] || action.step)), /*#__PURE__*/React.createElement("button", {
+  }, stepLabels[action.step] || action.step)), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 6,
+      marginRight: 6
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontFamily: "var(--fCond)",
+      fontSize: 9,
+      color: "var(--t3)",
+      letterSpacing: "0.06em"
+    }
+  }, "\uD83C\uDFAC"), /*#__PURE__*/React.createElement("input", {
+    type: "text",
+    value: action.videoTs || "",
+    onChange: e => setAction(a => ({
+      ...a,
+      videoTs: e.target.value
+    })),
+    placeholder: "00:00",
+    title: "Optional video timestamp",
+    style: {
+      width: 54,
+      fontSize: 11,
+      fontFamily: "var(--fm)",
+      background: "var(--bg-3)",
+      border: "1px solid var(--line-soft)",
+      borderRadius: 5,
+      padding: "3px 6px",
+      color: "var(--t1)",
+      textAlign: "center"
+    }
+  })), /*#__PURE__*/React.createElement("button", {
     className: "modal-close",
     onClick: close
   }, /*#__PURE__*/React.createElement(Icon, {
@@ -9970,7 +10193,217 @@ function SeasonStatsSection(_ref72) {
     className: "num"
   }, "\u2014"), /*#__PURE__*/React.createElement("td", {
     className: "num"
-  }, totals.totalPts)))))));
+  }, totals.totalPts)))))), /*#__PURE__*/React.createElement(SeasonTrendsChart, {
+    homeTeamName: homeTeam.name
+  }));
+}
+
+// ─── Season Trends Chart ─────────────────────────────────────────────
+function SeasonTrendsChart(_ref73) {
+  let homeTeamName = _ref73.homeTeamName;
+  const _useState16 = useState(null),
+    trendData = _useState16[0],
+    setTrendData = _useState16[1];
+  useEffect(() => {
+    listMatches().then(all => {
+      const hm = [...all].filter(m => {
+        var _m$homeTeam;
+        return (((_m$homeTeam = m.homeTeam) == null ? void 0 : _m$homeTeam.name) || "") === homeTeamName;
+      }).slice(0, 12).reverse();
+      const pts = hm.map(m => {
+        try {
+          var _m$awayTeam;
+          const evs = m.events || [];
+          const hAg = aggregateStats(evs, "home");
+          const hSc = scoreOf(evs, "home"),
+            aSc = scoreOf(evs, "away");
+          return {
+            date: m.savedAt ? new Date(m.savedAt).toLocaleDateString("en-IE", {
+              month: "short",
+              day: "numeric"
+            }) : "?",
+            opp: ((_m$awayTeam = m.awayTeam) == null ? void 0 : _m$awayTeam.name) || "Away",
+            xpDelta: +hAg.xPDelta.toFixed(2),
+            sqi: +hAg.sqi,
+            toNet: hAg.toWon - hAg.toLost,
+            conv: hAg.conv,
+            won: hSc.total > aSc.total
+          };
+        } catch {
+          return null;
+        }
+      }).filter(Boolean);
+      setTrendData(pts);
+    });
+  }, [homeTeamName]);
+  if (trendData === null) return /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: "14px",
+      color: "var(--t3)",
+      fontSize: 12,
+      textAlign: "center"
+    }
+  }, "Loading trends\u2026");
+  if (trendData.length < 2) return /*#__PURE__*/React.createElement("div", {
+    className: "card",
+    style: {
+      marginTop: 14
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "card-h"
+  }, /*#__PURE__*/React.createElement("h3", null, "Season Trends")), /*#__PURE__*/React.createElement("div", {
+    className: "card-b",
+    style: {
+      color: "var(--t3)",
+      fontSize: 12,
+      textAlign: "center",
+      padding: "18px 0"
+    }
+  }, "Save at least 2 matches to see trends."));
+  const Spark = _ref74 => {
+    let data = _ref74.data,
+      color = _ref74.color,
+      label = _ref74.label,
+      _ref74$fmt = _ref74.fmt,
+      fmt = _ref74$fmt === void 0 ? v => v : _ref74$fmt,
+      _ref74$zero = _ref74.zero,
+      zero = _ref74$zero === void 0 ? true : _ref74$zero;
+    const vals = data.map(d => d.v);
+    const mn = Math.min(...vals),
+      mx = Math.max(...vals),
+      range = mx - mn || 1;
+    const W = 260,
+      H = 52,
+      PAD = 5;
+    const polyPts = vals.map((v, i) => {
+      const x = PAD + i / (vals.length - 1 || 1) * (W - PAD * 2);
+      const y = H - PAD - (v - mn) / range * (H - PAD * 2);
+      return `${x.toFixed(1)},${y.toFixed(1)}`;
+    }).join(" ");
+    const zeroY = H - PAD - (0 - mn) / range * (H - PAD * 2);
+    return /*#__PURE__*/React.createElement("div", {
+      style: {
+        marginBottom: 12
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        justifyContent: "space-between",
+        marginBottom: 2
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontFamily: "var(--fCond)",
+        fontSize: 9,
+        color: "var(--t3)",
+        letterSpacing: "0.08em",
+        textTransform: "uppercase"
+      }
+    }, label), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontFamily: "var(--fm)",
+        fontSize: 10,
+        color: color,
+        fontWeight: 600
+      }
+    }, fmt(vals[vals.length - 1]))), /*#__PURE__*/React.createElement("svg", {
+      viewBox: `0 0 ${W} ${H}`,
+      style: {
+        width: "100%",
+        height: H,
+        display: "block"
+      }
+    }, zero && mn < 0 && mx > 0 && /*#__PURE__*/React.createElement("line", {
+      x1: PAD,
+      y1: zeroY,
+      x2: W - PAD,
+      y2: zeroY,
+      stroke: "var(--wire2)",
+      strokeWidth: "1",
+      strokeDasharray: "3,3"
+    }), /*#__PURE__*/React.createElement("polyline", {
+      points: polyPts,
+      fill: "none",
+      stroke: color,
+      strokeWidth: "2",
+      strokeLinejoin: "round"
+    }), vals.map((v, i) => {
+      const x = PAD + i / (vals.length - 1 || 1) * (W - PAD * 2);
+      const y = H - PAD - (v - mn) / range * (H - PAD * 2);
+      return /*#__PURE__*/React.createElement("circle", {
+        key: i,
+        cx: x,
+        cy: y,
+        r: "3.5",
+        fill: data[i].won ? "var(--score)" : "var(--away)",
+        stroke: color,
+        strokeWidth: "1.5"
+      });
+    })), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        justifyContent: "space-between",
+        marginTop: 2
+      }
+    }, data.map((d, i) => /*#__PURE__*/React.createElement("span", {
+      key: i,
+      style: {
+        fontFamily: "var(--fm)",
+        fontSize: 7.5,
+        color: "var(--t3)",
+        textAlign: "center",
+        flex: 1,
+        overflow: "hidden",
+        textOverflow: "ellipsis",
+        whiteSpace: "nowrap"
+      }
+    }, d.date))));
+  };
+  return /*#__PURE__*/React.createElement("div", {
+    className: "card",
+    style: {
+      marginTop: 14
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "card-h"
+  }, /*#__PURE__*/React.createElement("h3", null, "Season Trends"), /*#__PURE__*/React.createElement("span", {
+    className: "sec-aux"
+  }, "Last ", trendData.length, " matches \xB7 \u25CF W  \u25CF L")), /*#__PURE__*/React.createElement("div", {
+    className: "card-b"
+  }, /*#__PURE__*/React.createElement(Spark, {
+    data: trendData.map(m => ({
+      ...m,
+      v: m.xpDelta
+    })),
+    color: "var(--home)",
+    label: "xP Delta (actual \u2212 expected)",
+    fmt: v => (v >= 0 ? "+" : "") + v.toFixed(2)
+  }), /*#__PURE__*/React.createElement(Spark, {
+    data: trendData.map(m => ({
+      ...m,
+      v: parseFloat(m.sqi || 0)
+    })),
+    color: "var(--gold)",
+    label: "Shot Quality Index (SQI)",
+    fmt: v => v.toFixed(3),
+    zero: false
+  }), /*#__PURE__*/React.createElement(Spark, {
+    data: trendData.map(m => ({
+      ...m,
+      v: m.toNet
+    })),
+    color: "var(--score)",
+    label: "Turnover Net (Won \u2212 Lost)"
+  }), /*#__PURE__*/React.createElement(Spark, {
+    data: trendData.map(m => ({
+      ...m,
+      v: m.conv
+    })),
+    color: "#a78bfa",
+    label: "Shot Conversion %",
+    fmt: v => v + "%",
+    zero: false
+  })));
 }
 
 // ════════════════════════════════════════════════════════════════════
@@ -10094,24 +10527,24 @@ function ruleBasedAnalyst(question, ctx) {
   summary.push(`Try one of the preset questions on the left for a more focused answer, or rephrase asking about shooting, turnovers, players, kickouts, or what to fix.`);
   return summary.join("\n\n");
 }
-function AIAnalystModal(_ref73) {
+function AIAnalystModal(_ref75) {
   var _window$claude2, _window$claude3;
-  let events = _ref73.events,
-    homeTeam = _ref73.homeTeam,
-    awayTeam = _ref73.awayTeam,
-    seconds = _ref73.seconds,
-    half = _ref73.half,
-    phase = _ref73.phase,
-    onClose = _ref73.onClose;
-  const _useState16 = useState(""),
-    question = _useState16[0],
-    setQuestion = _useState16[1];
-  const _useState17 = useState([]),
-    history = _useState17[0],
-    setHistory = _useState17[1];
-  const _useState18 = useState(false),
-    busy = _useState18[0],
-    setBusy = _useState18[1];
+  let events = _ref75.events,
+    homeTeam = _ref75.homeTeam,
+    awayTeam = _ref75.awayTeam,
+    seconds = _ref75.seconds,
+    half = _ref75.half,
+    phase = _ref75.phase,
+    onClose = _ref75.onClose;
+  const _useState17 = useState(""),
+    question = _useState17[0],
+    setQuestion = _useState17[1];
+  const _useState18 = useState([]),
+    history = _useState18[0],
+    setHistory = _useState18[1];
+  const _useState19 = useState(false),
+    busy = _useState19[0],
+    setBusy = _useState19[1];
   const scrollRef = useRef(null);
 
   // Build a compact match-state digest for the model
@@ -10135,9 +10568,9 @@ function AIAnalystModal(_ref73) {
         };
         if (s.outcome === "goal") byPid[s.player].goals++;else if (s.outcome === "2point") byPid[s.player].twos++;else if (s.outcome === "point") byPid[s.player].points++;else byPid[s.player].misses++;
       });
-      return Object.entries(byPid).map(_ref74 => {
-        let pid = _ref74[0],
-          s = _ref74[1];
+      return Object.entries(byPid).map(_ref76 => {
+        let pid = _ref76[0],
+          s = _ref76[1];
         const p = teamObj.players.find(pl => pl.id === pid);
         const pts = s.goals * 3 + s.twos * 2 + s.points;
         return {
@@ -10506,8 +10939,8 @@ ANSWER PERSPECTIVE: From the manager of ${c.home.name} (home team).`;
     }
   }, "Powered by Claude Haiku \xB7 runs against live match state \xB7 responses are advisory"))))));
 }
-function ChatBubble(_ref75) {
-  let m = _ref75.message;
+function ChatBubble(_ref77) {
+  let m = _ref77.message;
   if (m.role === "user") {
     return /*#__PURE__*/React.createElement("div", {
       style: {
@@ -10598,63 +11031,383 @@ function PendingDots() {
 // FROM: app.jsx
 // ════════════════════════════════════════════════════════════════════
 
+// ─── Win Probability ─────────────────────────────────────────────────
+// Gaussian model: remaining score swing ~ N(0,σ²), σ shrinks with time.
+// Empirical full-match σ ≈ 8 pts. Returns 0-100 home win probability.
+function winProb(events, seconds, half, halfLength) {
+  const hS = scoreOf(events, "home").total;
+  const aS = scoreOf(events, "away").total;
+  const diff = hS - aS;
+  const halfSecs = (halfLength || 35) * 60;
+  const elapsed = Math.min(((half || 1) - 1) * halfSecs + (seconds || 0), 2 * halfSecs);
+  const frac = elapsed / (2 * halfSecs);
+  if (frac >= 0.995) return diff > 0 ? 100 : diff < 0 ? 0 : 50;
+  const sigma = Math.max(8 * Math.sqrt(1 - frac), 0.3);
+  const z = diff / sigma;
+  const phi = x => {
+    const t = 1 / (1 + 0.2316419 * Math.abs(x));
+    const d = 0.3989423 * Math.exp(-x * x / 2);
+    const p = t * (0.3193815 + t * (-0.3565638 + t * (1.7814779 + t * (-1.8212560 + t * 1.3302744))));
+    return x >= 0 ? 1 - d * p : d * p;
+  };
+  return Math.round(phi(z) * 100);
+}
+
+// ─── PDF Report helpers ──────────────────────────────────────────────
+function generateFallbackAnalysis(hAgg, aAgg, hScore, aScore, hN, aN) {
+  const hWin = hScore.total > aScore.total;
+  const draw = hScore.total === aScore.total;
+  const margin = Math.abs(hScore.total - aScore.total);
+  const xpDelta = hAgg.xPDelta.toFixed(2);
+  const toNet = hAgg.toWon - hAgg.toLost;
+  const summary = `${hN} ${draw ? "drew with" : hWin ? "defeated" : "lost to"} ${aN} on a scoreline of ${hScore.total} pts to ${aScore.total} pts${draw ? " in an evenly contested encounter" : ` in a ${margin <= 3 ? "tight" : margin <= 6 ? "competitive" : "comprehensive"} ${hWin ? "victory" : "defeat"}`}. ${hN} registered ${hAgg.shots} shots at a conversion rate of ${hAgg.conv}% with an xP of ${hAgg.xP.toFixed(2)}, ${parseFloat(xpDelta) >= 0 ? `outperforming expected by ${xpDelta} points` : `underperforming expected by ${Math.abs(parseFloat(xpDelta))} points`}. ${hN} controlled ${hAgg.possPct}% of possession, averaging ${hAgg.avgPossSec} seconds per sequence. The turnover battle ${toNet > 0 ? `favoured ${hN} with a net gain of +${toNet}` : toNet < 0 ? `went against ${hN} with a net of ${toNet}` : "was evenly matched"}.`;
+  return {
+    summary,
+    positives: [{
+      title: "Possession Control",
+      detail: `${hN} dominated the ball at ${hAgg.possPct}% possession, generating ${hAgg.shots} shots from ${hAgg.possessions} possessions. A shot rate of ${hAgg.shotRate}% demonstrates disciplined use of possession.`
+    }, {
+      title: "Shot Quality",
+      detail: `An SQI of ${hAgg.sqi} and kickout efficiency of ${hAgg.kosPct}% provided ${hN} with quality platform ball. Pressing from good positions is a key tactical strength.`
+    }, {
+      title: "Turnover Return",
+      detail: `${hN} won ${hAgg.toWon} turnovers, providing transition opportunities throughout the match. Converting this pressure into scores sustains momentum.`
+    }],
+    negatives: [{
+      title: "xP vs Actuals",
+      detail: `${hN} ${parseFloat(xpDelta) < 0 ? `underperformed xP by ${Math.abs(parseFloat(xpDelta))} points — missed scoring opportunities must be addressed through shooting practice and decision-making work` : `outperformed xP, which is encouraging, but the team must maintain consistent shot quality rather than relying on variance`}.`
+    }, {
+      title: "Conversion Rate",
+      detail: `A conversion rate of ${hAgg.conv}% from ${hAgg.shots} attempts leaves room for improvement. Targeted work on shot selection under pressure and increasing the proportion of high-value positions will improve this metric.`
+    }, {
+      title: "Turnovers Conceded",
+      detail: `${hN} gave away ${hAgg.toLost} turnovers. Reducing unforced errors — particularly in congested midfield zones — will be crucial to sustaining pressure and limiting opposition transition opportunities.`
+    }]
+  };
+}
+function buildReportHTML(analysis, h, a, hAgg, aAgg, hScore, aScore, hN, aN, venue, matchDate) {
+  const COLS = [{
+    id: "q1",
+    label: "QTR 1"
+  }, {
+    id: "q2",
+    label: "QTR 2"
+  }, {
+    id: "h1",
+    label: "1H"
+  }, {
+    id: "q3",
+    label: "QTR 3"
+  }, {
+    id: "q4",
+    label: "QTR 4"
+  }, {
+    id: "h2",
+    label: "2H"
+  }, {
+    id: "tot",
+    label: "Total"
+  }];
+  const HEAVY = new Set(["h1", "h2", "tot"]);
+  const pct = (n, d) => d > 0 ? Math.round(n / d * 100) + "%" : "–";
+  const dp1 = v => typeof v === "number" ? v.toFixed(1) : "–";
+  const dp2 = v => typeof v === "number" ? v.toFixed(2) : "–";
+  const sign = v => (v >= 0 ? "+" : "") + (typeof v === "number" ? v.toFixed(2) : v);
+  const fbip = s => `${Math.floor(s / 60)}:${String(Math.round(s % 60)).padStart(2, "0")}`;
+  const esc = s => (s || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const colHdr = `<thead><tr><th style="text-align:left;min-width:110px;"></th>${COLS.map(c => `<th class="${HEAVY.has(c.id) ? "heavy" : ""}">${c.label}</th>`).join("")}</tr></thead>`;
+  const qRow = function (label, hB, aB, fmt) {
+    if (fmt === void 0) {
+      fmt = v => v || v === 0 ? v : "–";
+    }
+    return `
+    <tr class="shdr"><td colspan="9">${label}</td></tr>
+    <tr><td class="tl home-cl">${esc(hN)}</td>${COLS.map(c => `<td class="${HEAVY.has(c.id) ? "heavy" : ""}">${fmt(hB[c.id])}</td>`).join("")}</tr>
+    <tr><td class="tl away-cl">${esc(aN)}</td>${COLS.map(c => `<td class="${HEAVY.has(c.id) ? "heavy" : ""}">${fmt(aB[c.id])}</td>`).join("")}</tr>`;
+  };
+  const B = (n, d) => COLS.reduce((r, c) => ({
+    ...r,
+    [c.id]: pct(n[c.id], d[c.id])
+  }), {});
+  const hPossP = B(h.bipQ, COLS.reduce((r, c) => ({
+    ...r,
+    [c.id]: (h.bipQ[c.id] || 0) + (a.bipQ[c.id] || 0)
+  }), {}));
+  const aPossP = B(a.bipQ, COLS.reduce((r, c) => ({
+    ...r,
+    [c.id]: (h.bipQ[c.id] || 0) + (a.bipQ[c.id] || 0)
+  }), {}));
+  const hAvgP = COLS.reduce((r, c) => ({
+    ...r,
+    [c.id]: h.possQ[c.id] > 0 ? dp1(h.bipQ[c.id] / h.possQ[c.id]) : "–"
+  }), {});
+  const aAvgP = COLS.reduce((r, c) => ({
+    ...r,
+    [c.id]: a.possQ[c.id] > 0 ? dp1(a.bipQ[c.id] / a.possQ[c.id]) : "–"
+  }), {});
+  const hProd = COLS.reduce((r, c) => ({
+    ...r,
+    [c.id]: h.possQ[c.id] > 0 ? dp1(h.ptsQ[c.id] / h.possQ[c.id] * 10) : "–"
+  }), {});
+  const aProd = COLS.reduce((r, c) => ({
+    ...r,
+    [c.id]: a.possQ[c.id] > 0 ? dp1(a.ptsQ[c.id] / a.possQ[c.id] * 10) : "–"
+  }), {});
+  const hXPFmt = COLS.reduce((r, c) => ({
+    ...r,
+    [c.id]: dp2(h.xpQ[c.id] || 0)
+  }), {});
+  const aXPFmt = COLS.reduce((r, c) => ({
+    ...r,
+    [c.id]: dp2(a.xpQ[c.id] || 0)
+  }), {});
+  const hXPDiff = COLS.reduce((r, c) => {
+    const d = (h.ptsQ[c.id] || 0) - (h.xpQ[c.id] || 0);
+    return {
+      ...r,
+      [c.id]: (d >= 0 ? "+" : "") + d.toFixed(2)
+    };
+  }, {});
+  const aXPDiff = COLS.reduce((r, c) => {
+    const d = (a.ptsQ[c.id] || 0) - (a.xpQ[c.id] || 0);
+    return {
+      ...r,
+      [c.id]: (d >= 0 ? "+" : "") + d.toFixed(2)
+    };
+  }, {});
+  const koR = (wQ, tQ) => COLS.reduce((r, c) => {
+    const w = wQ[c.id] || 0,
+      t = tQ[c.id] || 0;
+    return {
+      ...r,
+      [c.id]: t ? `${w}/${t} (${Math.round(w / t * 100)}%)` : "–"
+    };
+  }, {});
+  const positives = (analysis.positives || []).slice(0, 3);
+  const negatives = (analysis.negatives || []).slice(0, 3);
+  return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"/><title>${esc(hN)} v ${esc(aN)} — Match Report</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;900&family=Barlow:wght@400;500;600&display=swap');
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Barlow',sans-serif;font-size:10pt;color:#1a1a2e;background:#fff;}
+@page{size:A4;margin:12mm 13mm;}
+@media print{.no-print{display:none!important;}.page-break{page-break-after:always;break-after:page;}}
+.report-header{background:#002366;color:#fff;padding:16px 18px;}
+.match-title{font-family:'Barlow Condensed',sans-serif;font-size:20pt;font-weight:900;letter-spacing:.05em;text-transform:uppercase;}
+.match-sub{font-size:8.5pt;color:rgba(255,255,255,.6);margin-top:3px;letter-spacing:.1em;text-transform:uppercase;}
+.scoreline{display:flex;align-items:center;justify-content:center;gap:18px;padding:10px 0 6px;}
+.sc-team{text-align:center;}
+.sc-name{font-family:'Barlow Condensed',sans-serif;font-size:13pt;font-weight:700;letter-spacing:.07em;text-transform:uppercase;}
+.home-name{color:#6db3f7;}.away-name{color:#f78080;}
+.sc-score{font-family:'Barlow Condensed',sans-serif;font-size:34pt;font-weight:900;color:#FFD700;}
+.sc-pts{font-size:8pt;color:rgba(255,255,255,.5);margin-top:1px;}
+.sc-vs{font-family:'Barlow Condensed',sans-serif;font-size:12pt;color:rgba(255,255,255,.4);font-weight:600;}
+.body-wrap{padding:0 2px;}
+.stats-bar{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin:8px 0;}
+.sb-cell{background:#f4f6fb;border-radius:4px;padding:6px 7px;text-align:center;}
+.sb-lbl{font-family:'Barlow Condensed',sans-serif;font-size:7pt;color:#555;letter-spacing:.09em;text-transform:uppercase;margin-bottom:1px;}
+.sb-val{font-family:'Barlow Condensed',sans-serif;font-size:13pt;font-weight:700;color:#002366;}
+.sb-sub{font-size:7pt;color:#888;}
+.sec-title{font-family:'Barlow Condensed',sans-serif;font-size:10.5pt;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:#002366;padding:8px 0 4px;border-bottom:2px solid #002366;margin-bottom:7px;}
+.summary-text{font-size:9pt;line-height:1.55;color:#1a1a2e;margin-bottom:8px;}
+.pa-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;}
+.pa-card{border-radius:5px;padding:8px 10px;}
+.pa-card.pos{background:#f0f9f0;border-left:4px solid #1a8a3a;}
+.pa-card.neg{background:#fff4f0;border-left:4px solid #c0392b;}
+.pa-title{font-family:'Barlow Condensed',sans-serif;font-size:9.5pt;font-weight:700;letter-spacing:.07em;text-transform:uppercase;margin-bottom:3px;}
+.pa-card.pos .pa-title{color:#1a8a3a;}.pa-card.neg .pa-title{color:#c0392b;}
+.pa-detail{font-size:8pt;line-height:1.5;color:#2a2a2a;}
+.page-title{font-family:'Barlow Condensed',sans-serif;font-size:9.5pt;font-weight:900;letter-spacing:.14em;text-transform:uppercase;color:#002366;background:#e8edf8;padding:5px 7px;margin:7px 0 3px;border-left:4px solid #002366;}
+table{width:100%;border-collapse:collapse;font-size:7.5pt;margin-bottom:5px;}
+th{font-family:'Barlow Condensed',sans-serif;font-size:7pt;font-weight:700;letter-spacing:.08em;text-transform:uppercase;background:#002366;color:#fff;padding:4px 3px;text-align:center;}
+th:first-child{text-align:left;padding-left:6px;}
+td{padding:2.5px 3px;text-align:center;border-bottom:1px solid #eaecf5;font-size:7.5pt;}
+td:first-child{text-align:left;padding-left:6px;}
+td.heavy{background:#e8edf8;font-weight:700;color:#002366;}
+th.heavy{background:#001a4d;}
+.shdr td{background:#f4f6fb;font-family:'Barlow Condensed',sans-serif;font-size:8pt;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:#444;padding:4px 6px;border-top:1px solid #d8def0;}
+.tl{font-family:'Barlow Condensed',sans-serif;font-size:8pt;font-weight:700;letter-spacing:.04em;}
+.home-cl{color:#003DA5;}.away-cl{color:#9B1B30;}
+.footer{font-size:7pt;color:#aaa;text-align:center;margin-top:7px;padding-top:5px;border-top:1px solid #ddd;}
+.print-btn{position:fixed;top:10px;right:10px;background:#002366;color:#fff;border:none;padding:8px 16px;border-radius:5px;cursor:pointer;font-family:'Barlow Condensed',sans-serif;font-size:11pt;font-weight:700;letter-spacing:.07em;z-index:999;box-shadow:0 2px 8px rgba(0,0,0,.3);}
+</style></head><body>
+<button class="print-btn no-print" onclick="window.print()">🖨 Print / Save PDF</button>
+<div class="report-header">
+  <div class="match-title">${esc(hN)} v ${esc(aN)}</div>
+  <div class="match-sub">${venue ? esc(venue) + " · " : ""}${esc(matchDate)} · Post-Match Report</div>
+  <div class="scoreline">
+    <div class="sc-team"><div class="sc-name home-name">${esc(hN)}</div><div class="sc-score">${hScore.g}-${hScore.p2}-${hScore.p}</div><div class="sc-pts">${hScore.total} pts</div></div>
+    <div class="sc-vs">VS</div>
+    <div class="sc-team"><div class="sc-name away-name">${esc(aN)}</div><div class="sc-score">${aScore.g}-${aScore.p2}-${aScore.p}</div><div class="sc-pts">${aScore.total} pts</div></div>
+  </div>
+</div>
+<div class="body-wrap">
+<div class="stats-bar">
+  <div class="sb-cell"><div class="sb-lbl">Possession</div><div class="sb-val">${hAgg.possPct}%</div><div class="sb-sub">${esc(hN)}</div></div>
+  <div class="sb-cell"><div class="sb-lbl">Shots / Conv</div><div class="sb-val">${hAgg.shots}</div><div class="sb-sub">${hAgg.conv}% conv</div></div>
+  <div class="sb-cell"><div class="sb-val" style="color:${hAgg.xPDelta >= 0 ? "#1a8a3a" : "#c0392b"}">${sign(hAgg.xPDelta)}</div><div class="sb-lbl">xP Delta</div></div>
+  <div class="sb-cell"><div class="sb-val" style="color:${hAgg.toWon - hAgg.toLost >= 0 ? "#1a8a3a" : "#c0392b"}">${hAgg.toWon - hAgg.toLost >= 0 ? "+" : ""}${hAgg.toWon - hAgg.toLost}</div><div class="sb-lbl">T/O Net</div></div>
+</div>
+<div class="sec-title">Match Summary</div>
+<p class="summary-text">${esc(analysis.summary || "")}</p>
+<div class="sec-title">Carrigaline — Key Takeaways</div>
+<div class="pa-grid">
+  ${positives.map((p, i) => `<div class="pa-card pos"><div class="pa-title">✓ ${esc(p.title || "Positive " + (i + 1))}</div><div class="pa-detail">${esc(p.detail || "")}</div></div>`).join("")}
+  ${negatives.map((n, i) => `<div class="pa-card neg"><div class="pa-title">✗ ${esc(n.title || "Area " + (i + 1))}</div><div class="pa-detail">${esc(n.detail || "")}</div></div>`).join("")}
+</div>
+<div class="footer">GAA Match Tracker · ${esc(hN)} v ${esc(aN)} · ${esc(matchDate)}</div>
+</div>
+<div class="page-break"></div>
+<div class="body-wrap">
+<div class="page-title">Shooting &amp; Possession — By Quarter</div>
+<table>${colHdr}<tbody>
+${qRow("Possessions", h.possQ, a.possQ)}
+${qRow("Ball In Play Time", COLS.reduce((r, c) => ({
+    ...r,
+    [c.id]: fbip(h.bipQ[c.id] || 0)
+  }), {}), COLS.reduce((r, c) => ({
+    ...r,
+    [c.id]: fbip(a.bipQ[c.id] || 0)
+  }), {}))}
+${qRow("Avg Possession (s)", hAvgP, aAvgP)}
+${qRow("Possession %", hPossP, aPossP)}
+${qRow("Shots", h.shotsQ, a.shotsQ)}
+${qRow("Scores", h.scoresQ, a.scoresQ)}
+${qRow("Wides", h.widesQ, a.widesQ)}
+${qRow("Shot Rate", B(h.shotsQ, h.possQ), B(a.shotsQ, a.possQ))}
+${qRow("Shot Conversion", B(h.scoresQ, h.shotsQ), B(a.scoresQ, a.shotsQ))}
+${qRow("Productivity (Pts/10)", hProd, aProd)}
+${qRow("Origin — Own KO", h.ownKOShots, a.ownKOShots)}
+${qRow("Origin — Opp KO", h.oppKOShots, a.oppKOShots)}
+${qRow("Origin — Turnover", h.toShots, a.toShots)}
+${qRow("Origin — Clean Poss", h.cleanShots, a.cleanShots)}
+</tbody></table>
+<div class="page-title">Turnovers — By Quarter</div>
+<table>${colHdr}<tbody>
+${qRow("T/O Won — Own Half", h.toWonOwn, a.toWonOwn)}
+${qRow("T/O Won — Opp Half", h.toWonOpp, a.toWonOpp)}
+${qRow("Turnovers Lost", h.toLostQ, a.toLostQ)}
+${qRow("T/O Lost % of Poss", B(h.toLostQ, h.possQ), B(a.toLostQ, a.possQ))}
+${qRow("T/O Won → Shot", h.toWonShot, a.toWonShot)}
+${qRow("T/O Won → Score", h.toWonScore, a.toWonScore)}
+</tbody></table>
+<div class="footer">GAA Match Tracker · ${esc(hN)} v ${esc(aN)} · Page 2</div>
+</div>
+<div class="page-break"></div>
+<div class="body-wrap">
+<div class="page-title">Kickouts — By Quarter</div>
+<table>${colHdr}<tbody>
+${qRow("Short (<45m)", h.koShortQ, a.koShortQ)}
+${qRow("Long (>45m)", h.koLongQ, a.koLongQ)}
+${qRow("Short — Won/Total", koR(h.koShortWonQ, h.koShortQ), koR(a.koShortWonQ, a.koShortQ))}
+${qRow("Long — Won/Total", koR(h.koLongWonQ, h.koLongQ), koR(a.koLongWonQ, a.koLongQ))}
+${qRow("KO Won → Shot", h.koWonShot, a.koWonShot)}
+${qRow("KO Won → Score", h.koWonScore, a.koWonScore)}
+</tbody></table>
+<div class="page-title">Expected Points — By Quarter</div>
+<table>${colHdr}<tbody>
+${qRow("Total xP", hXPFmt, aXPFmt)}
+${qRow("Actual Points", h.ptsQ, a.ptsQ)}
+${qRow("xP +/− vs Actual", hXPDiff, aXPDiff)}
+</tbody></table>
+<div class="page-title">Full Match — Key Stats Comparison</div>
+<table><thead><tr><th style="text-align:left">Metric</th><th style="color:#6db3f7">${esc(hN)}</th><th style="color:#f78080">${esc(aN)}</th></tr></thead><tbody>
+${[["Final Score", `${hScore.g}-${hScore.p2}-${hScore.p} (${hScore.total})`, `${aScore.g}-${aScore.p2}-${aScore.p} (${aScore.total})`], ["Possessions", hAgg.possessions, aAgg.possessions], ["Shots", hAgg.shots, aAgg.shots], ["Scores", hAgg.scores, aAgg.scores], ["Shot Conversion", hAgg.conv + "%", aAgg.conv + "%"], ["Productivity (Pts/10)", dp1(hAgg.productivity), dp1(aAgg.productivity)], ["Total xP", dp2(hAgg.xP), dp2(aAgg.xP)], ["xP Delta", sign(hAgg.xPDelta), sign(aAgg.xPDelta)], ["SQI", hAgg.sqi, aAgg.sqi], ["Possession %", hAgg.possPct + "%", aAgg.possPct + "%"], ["Avg Possession (s)", hAgg.avgPossSec, aAgg.avgPossSec], ["T/O Won", hAgg.toWon, aAgg.toWon], ["T/O Lost", hAgg.toLost, aAgg.toLost], ["T/O Net", (hAgg.toWon - hAgg.toLost >= 0 ? "+" : "") + (hAgg.toWon - hAgg.toLost), (aAgg.toWon - aAgg.toLost >= 0 ? "+" : "") + (aAgg.toWon - aAgg.toLost)], ["KO Success", `${hAgg.kosWon}/${hAgg.kos} (${hAgg.kosPct}%)`, `${aAgg.kosWon}/${aAgg.kos} (${aAgg.kosPct}%)`]].map(_ref78 => {
+    let l = _ref78[0],
+      hv = _ref78[1],
+      av = _ref78[2];
+    return `<tr><td style="font-weight:600;color:#333">${l}</td><td style="color:#003DA5;font-weight:600">${hv}</td><td style="color:#9B1B30;font-weight:600">${av}</td></tr>`;
+  }).join("")}
+</tbody></table>
+<div class="footer">GAA Match Tracker · ${esc(hN)} v ${esc(aN)} · ${esc(matchDate)} · Page 3</div>
+</div>
+</body></html>`;
+}
+
 // ─── GAA Tracker · Main App ─────────────────────────────────────────
 
 function App() {
-  const _useState19 = useState("setup"),
-    screen = _useState19[0],
-    setScreen = _useState19[1]; // "setup" | "match" | "saved" | "season"
-  const _useState20 = useState("live"),
-    tab = _useState20[0],
-    setTab = _useState20[1];
-  const _useState21 = useState(EVENTS),
-    events = _useState21[0],
-    setEvents = _useState21[1];
-  const _useState22 = useState(0),
-    seconds = _useState22[0],
-    setSeconds = _useState22[1];
-  const _useState23 = useState(false),
-    running = _useState23[0],
-    setRunning = _useState23[1];
-  const _useState24 = useState(1),
-    half = _useState24[0],
-    setHalf = _useState24[1];
-  const _useState25 = useState("pre"),
-    phase = _useState25[0],
-    setPhase = _useState25[1]; // "pre" | "live" | "ht" | "ft"
-  const _useState26 = useState("home"),
-    lockedTeam = _useState26[0],
-    setLockedTeam = _useState26[1];
-  const _useState27 = useState(null),
-    action = _useState27[0],
-    setAction = _useState27[1];
-  const _useState28 = useState(false),
-    showAI = _useState28[0],
-    setShowAI = _useState28[1];
-  const _useState29 = useState(null),
-    editingEvent = _useState29[0],
-    setEditingEvent = _useState29[1];
-  const _useState30 = useState(null),
-    saveStatus = _useState30[0],
-    setSaveStatus = _useState30[1]; // null | "saving" | "saved"
+  const _useState20 = useState("setup"),
+    screen = _useState20[0],
+    setScreen = _useState20[1]; // "setup" | "match" | "saved" | "season"
+  const _useState21 = useState("live"),
+    tab = _useState21[0],
+    setTab = _useState21[1];
+  const _useState22 = useState(EVENTS),
+    events = _useState22[0],
+    setEvents = _useState22[1];
+  const _useState23 = useState(0),
+    seconds = _useState23[0],
+    setSeconds = _useState23[1];
+  const _useState24 = useState(false),
+    running = _useState24[0],
+    setRunning = _useState24[1];
+  const _useState25 = useState(1),
+    half = _useState25[0],
+    setHalf = _useState25[1];
+  const _useState26 = useState("pre"),
+    phase = _useState26[0],
+    setPhase = _useState26[1]; // "pre" | "live" | "ht" | "ft"
+  const _useState27 = useState("home"),
+    lockedTeam = _useState27[0],
+    setLockedTeam = _useState27[1];
+  const _useState28 = useState(null),
+    action = _useState28[0],
+    setAction = _useState28[1];
+  const _useState29 = useState(false),
+    showAI = _useState29[0],
+    setShowAI = _useState29[1];
+  const _useState30 = useState(false),
+    exporting = _useState30[0],
+    setExporting = _useState30[1];
   const _useState31 = useState(null),
-    loadedMatchId = _useState31[0],
-    setLoadedMatchId = _useState31[1];
-  const _useState32 = useState(null),
-    lastUndo = _useState32[0],
-    setLastUndo = _useState32[1];
-  const _useState33 = useState(HOME_TEAM),
-    homeTeam = _useState33[0],
-    setHomeTeam = _useState33[1];
-  const _useState34 = useState(AWAY_TEAM),
-    awayTeam = _useState34[0],
-    setAwayTeam = _useState34[1];
+    reportHTML = _useState31[0],
+    setReportHTML = _useState31[1];
+  const reportFrameRef = useRef(null);
+  const _useState32 = useState(false),
+    showSync = _useState32[0],
+    setShowSync = _useState32[1];
+  const _useState33 = useState(null),
+    syncMode = _useState33[0],
+    setSyncMode = _useState33[1]; // null | "host" | "viewer"
+  const _useState34 = useState(""),
+    syncCode = _useState34[0],
+    setSyncCode = _useState34[1];
   const _useState35 = useState(""),
-    venue = _useState35[0],
-    setVenue = _useState35[1];
-  const _useState36 = useState(30),
-    halfLength = _useState36[0],
-    setHalfLength = _useState36[1];
+    syncJoinCode = _useState35[0],
+    setSyncJoinCode = _useState35[1];
+  const _useState36 = useState("off"),
+    syncStatus = _useState36[0],
+    setSyncStatus = _useState36[1]; // "off"|"hosting"|"connected"|"error"
+  const _useState37 = useState(0),
+    syncPeerCount = _useState37[0],
+    setSyncPeerCount = _useState37[1];
+  const syncPeerRef = useRef(null);
+  const syncConnsRef = useRef([]);
+  const _useState38 = useState(null),
+    editingEvent = _useState38[0],
+    setEditingEvent = _useState38[1];
+  const _useState39 = useState(null),
+    saveStatus = _useState39[0],
+    setSaveStatus = _useState39[1]; // null | "saving" | "saved"
+  const _useState40 = useState(null),
+    loadedMatchId = _useState40[0],
+    setLoadedMatchId = _useState40[1];
+  const _useState41 = useState(null),
+    lastUndo = _useState41[0],
+    setLastUndo = _useState41[1];
+  const _useState42 = useState(HOME_TEAM),
+    homeTeam = _useState42[0],
+    setHomeTeam = _useState42[1];
+  const _useState43 = useState(AWAY_TEAM),
+    awayTeam = _useState43[0],
+    setAwayTeam = _useState43[1];
+  const _useState44 = useState(""),
+    venue = _useState44[0],
+    setVenue = _useState44[1];
+  const _useState45 = useState(30),
+    halfLength = _useState45[0],
+    setHalfLength = _useState45[1];
 
   // tick clock
   useEffect(() => {
@@ -10743,6 +11496,250 @@ function App() {
     setLoadedMatchId(match.id);
     setLastUndo(null);
     setScreen("match");
+  };
+
+  // ── Multi-device sync (PeerJS WebRTC) ───────────────────────────────
+  const loadPeerJS = () => new Promise((res, rej) => {
+    if (window.Peer) {
+      res(window.Peer);
+      return;
+    }
+    const s = document.createElement("script");
+    s.src = "https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js";
+    s.onload = () => res(window.Peer);
+    s.onerror = () => rej(new Error("Failed to load PeerJS. Check internet connection."));
+    document.head.appendChild(s);
+  });
+  const broadcast = msg => {
+    syncConnsRef.current.forEach(c => {
+      try {
+        c.send(msg);
+      } catch (e) {}
+    });
+  };
+  const startHosting = async () => {
+    try {
+      const Peer = await loadPeerJS();
+      if (syncPeerRef.current) {
+        syncPeerRef.current.destroy();
+      }
+      const peer = new Peer();
+      peer.on("open", id => {
+        const code = id.slice(0, 6).toUpperCase();
+        setSyncCode(code);
+        setSyncMode("host");
+        setSyncStatus("hosting");
+        // Store mapping so joining with short code works
+        try {
+          sessionStorage.setItem("gaa:sync:" + code, id);
+        } catch {}
+      });
+      peer.on("connection", conn => {
+        conn.on("open", () => {
+          syncConnsRef.current.push(conn);
+          setSyncPeerCount(n => n + 1);
+          // Send current full match state
+          conn.send({
+            type: "full",
+            events,
+            homeTeam,
+            awayTeam,
+            seconds,
+            half,
+            phase,
+            halfLength
+          });
+        });
+        conn.on("close", () => {
+          syncConnsRef.current = syncConnsRef.current.filter(c => c !== conn);
+          setSyncPeerCount(n => Math.max(0, n - 1));
+        });
+        conn.on("error", () => {
+          syncConnsRef.current = syncConnsRef.current.filter(c => c !== conn);
+          setSyncPeerCount(n => Math.max(0, n - 1));
+        });
+      });
+      peer.on("error", e => {
+        setSyncStatus("error");
+      });
+      syncPeerRef.current = peer;
+    } catch (e) {
+      alert("Sync failed: " + e.message);
+    }
+  };
+  const joinSession = async rawCode => {
+    const code = rawCode.trim().toUpperCase();
+    if (!code) {
+      alert("Enter a session code.");
+      return;
+    }
+    try {
+      const Peer = await loadPeerJS();
+      if (syncPeerRef.current) {
+        syncPeerRef.current.destroy();
+      }
+      const peer = new Peer();
+      peer.on("open", () => {
+        // Try to resolve full peer ID from short code stored in sessionStorage
+        const fullId = (() => {
+          try {
+            return sessionStorage.getItem("gaa:sync:" + code) || code;
+          } catch {
+            return code;
+          }
+        })();
+        const conn = peer.connect(fullId, {
+          reliable: true
+        });
+        conn.on("open", () => {
+          setSyncMode("viewer");
+          setSyncStatus("connected");
+          setShowSync(false);
+        });
+        conn.on("data", msg => {
+          if (!msg) return;
+          if (msg.type === "full") {
+            setEvents(msg.events || []);
+          } else if (msg.type === "ev_add") {
+            setEvents(es => [...es, msg.event]);
+          } else if (msg.type === "ev_del") {
+            setEvents(es => es.filter(e => e.id !== msg.id));
+          } else if (msg.type === "ev_upd") {
+            setEvents(es => es.map(e => e.id === msg.event.id ? msg.event : e));
+          } else if (msg.type === "clock") {
+            setSeconds(msg.seconds);
+            setHalf(msg.half);
+          }
+        });
+        conn.on("error", e => {
+          setSyncStatus("error");
+        });
+      });
+      peer.on("error", e => {
+        setSyncStatus("error");
+        alert("Could not connect. Check the session code.");
+      });
+      syncPeerRef.current = peer;
+    } catch (e) {
+      alert("Sync failed: " + e.message);
+    }
+  };
+  const stopSync = () => {
+    if (syncPeerRef.current) {
+      try {
+        syncPeerRef.current.destroy();
+      } catch {}
+      syncPeerRef.current = null;
+    }
+    syncConnsRef.current = [];
+    setSyncMode(null);
+    setSyncStatus("off");
+    setSyncCode("");
+    setSyncPeerCount(0);
+  };
+
+  // Broadcast events to connected viewers when they change (host only)
+  const prevEventsRef = useRef(events);
+  useEffect(() => {
+    if (syncMode !== "host") return;
+    const prev = prevEventsRef.current;
+    if (events.length > prev.length) {
+      const added = events.slice(prev.length);
+      added.forEach(e => broadcast({
+        type: "ev_add",
+        event: e
+      }));
+    } else if (events.length < prev.length) {
+      const removedIds = prev.filter(e => !events.find(n => n.id === e.id)).map(e => e.id);
+      removedIds.forEach(id => broadcast({
+        type: "ev_del",
+        id
+      }));
+    } else {
+      events.forEach((e, i) => {
+        if (JSON.stringify(e) !== JSON.stringify(prev[i])) broadcast({
+          type: "ev_upd",
+          event: e
+        });
+      });
+    }
+    prevEventsRef.current = events;
+  }, [events, syncMode]);
+  useEffect(() => {
+    if (syncMode === "host") broadcast({
+      type: "clock",
+      seconds,
+      half
+    });
+  }, [seconds, half, syncMode]);
+  const exportMatchReport = async () => {
+    if (exporting) return;
+    setExporting(true);
+    try {
+      const hQ = quartAggregate(events, "home");
+      const aQ = quartAggregate(events, "away");
+      const hAg = aggregateStats(events, "home");
+      const aAg = aggregateStats(events, "away");
+      const hSc = scoreOf(events, "home");
+      const aSc = scoreOf(events, "away");
+      const hN = homeTeam.name || "Home";
+      const aN = awayTeam.name || "Away";
+      const matchDate = new Date().toLocaleDateString("en-IE", {
+        weekday: "long",
+        year: "numeric",
+        month: "long",
+        day: "numeric"
+      });
+      let analysis = null;
+      const statsLine = (ag, name) => `${name}: ${ag.possessions} poss, ${ag.shots} shots, ${ag.scores} scores, ` + `${ag.conv}% conv, xP ${ag.xP.toFixed(2)} (delta ${ag.xPDelta.toFixed(2)}), ` + `SQI ${ag.sqi}, poss ${ag.possPct}%, T/O W${ag.toWon}/L${ag.toLost}, ` + `KO ${ag.kosWon}/${ag.kos} (${ag.kosPct}%)`;
+      const prompt = `You are a professional GAA analyst. Write a post-match report for the following game from ${hN} perspective.\n\n` + `MATCH RESULT: ${hN} ${hSc.g}-${hSc.p2}-${hSc.p} (${hSc.total} pts) vs ${aN} ${aSc.g}-${aSc.p2}-${aSc.p} (${aSc.total} pts)\n` + `${statsLine(hAg, hN)}\n${statsLine(aAg, aN)}\n\n` + `Reply using exactly these section labels:\n` + `SUMMARY\n(2-3 paragraph narrative)\n\nPOSITIVE 1\nTitle: (short title)\nDetail: (2-3 sentences)\n\n` + `POSITIVE 2\nTitle: (short title)\nDetail: (2-3 sentences)\n\nPOSITIVE 3\nTitle: (short title)\nDetail: (2-3 sentences)\n\n` + `NEGATIVE 1\nTitle: (short title)\nDetail: (2-3 sentences)\n\nNEGATIVE 2\nTitle: (short title)\nDetail: (2-3 sentences)\n\n` + `NEGATIVE 3\nTitle: (short title)\nDetail: (2-3 sentences)`;
+      try {
+        const apiResp = await fetch("https://api.anthropic.com/v1/messages", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            model: "claude-sonnet-4-20250514",
+            max_tokens: 1000,
+            messages: [{
+              role: "user",
+              content: prompt
+            }]
+          })
+        });
+        if (apiResp.ok) {
+          const data = await apiResp.json();
+          const text = (data.content || []).filter(b => b.type === "text").map(b => b.text).join("\n");
+          const getBlock = lbl => {
+            const m = text.match(new RegExp(lbl + "\\s*\\nTitle:\\s*(.+)\\nDetail:\\s*([\\s\\S]*?)(?=\\n(?:POSITIVE|NEGATIVE)|$)", "i"));
+            return m ? {
+              title: m[1].trim(),
+              detail: m[2].trim()
+            } : null;
+          };
+          const sumM = text.match(/SUMMARY\s*\n([\s\S]*?)(?=\nPOSITIVE|\n$|$)/i);
+          if (sumM && sumM[1].trim()) {
+            analysis = {
+              summary: sumM[1].trim(),
+              positives: [getBlock("POSITIVE 1"), getBlock("POSITIVE 2"), getBlock("POSITIVE 3")].filter(Boolean),
+              negatives: [getBlock("NEGATIVE 1"), getBlock("NEGATIVE 2"), getBlock("NEGATIVE 3")].filter(Boolean)
+            };
+          }
+        }
+      } catch (e) {
+        console.warn("AI fetch failed:", e);
+      }
+      if (!analysis || !analysis.summary) {
+        analysis = generateFallbackAnalysis(hAg, aAg, hSc, aSc, hN, aN);
+      }
+      const html = buildReportHTML(analysis, hQ, aQ, hAg, aAg, hSc, aSc, hN, aN, venue, matchDate);
+      setReportHTML(html);
+    } catch (err) {
+      alert("Export failed: " + ((err == null ? void 0 : err.message) || "Unknown error"));
+    } finally {
+      setExporting(false);
+    }
   };
   const handleResetMatch = () => {
     if (!confirm("Reset match? All unsaved events will be lost.")) return;
@@ -10875,6 +11872,55 @@ function App() {
   }, "Reset"), /*#__PURE__*/React.createElement("span", {
     className: "spacer"
   }), /*#__PURE__*/React.createElement("button", {
+    className: "tbtn",
+    onClick: () => setShowSync(true),
+    style: {
+      position: "relative"
+    }
+  }, /*#__PURE__*/React.createElement(Icon, {
+    name: "wifi",
+    size: 12
+  }), syncStatus === "hosting" && /*#__PURE__*/React.createElement("span", {
+    style: {
+      position: "absolute",
+      top: 2,
+      right: 2,
+      width: 6,
+      height: 6,
+      borderRadius: "50%",
+      background: "var(--score)"
+    }
+  }), syncStatus === "connected" && /*#__PURE__*/React.createElement("span", {
+    style: {
+      position: "absolute",
+      top: 2,
+      right: 2,
+      width: 6,
+      height: 6,
+      borderRadius: "50%",
+      background: "var(--home)"
+    }
+  }), syncStatus === "error" && /*#__PURE__*/React.createElement("span", {
+    style: {
+      position: "absolute",
+      top: 2,
+      right: 2,
+      width: 6,
+      height: 6,
+      borderRadius: "50%",
+      background: "var(--away)"
+    }
+  }), "Sync", syncStatus === "hosting" ? ` (${syncPeerCount})` : syncStatus === "connected" ? " ✓" : ""), /*#__PURE__*/React.createElement("button", {
+    className: "tbtn",
+    onClick: exportMatchReport,
+    disabled: exporting,
+    style: {
+      opacity: exporting ? 0.6 : 1
+    }
+  }, /*#__PURE__*/React.createElement(Icon, {
+    name: "doc",
+    size: 12
+  }), " ", exporting ? "Generating…" : "Export PDF"), /*#__PURE__*/React.createElement("button", {
     className: "tbtn primary",
     onClick: () => setShowAI(true)
   }, /*#__PURE__*/React.createElement(Icon, {
@@ -10889,10 +11935,10 @@ function App() {
     name: "bolt"
   }), " Actions"), /*#__PURE__*/React.createElement("span", {
     className: "tab-sep"
-  }), TABS.slice(1).map(_ref76 => {
-    let id = _ref76[0],
-      icon = _ref76[1],
-      label = _ref76[2];
+  }), TABS.slice(1).map(_ref79 => {
+    let id = _ref79[0],
+      icon = _ref79[1],
+      label = _ref79[2];
     return /*#__PURE__*/React.createElement("button", {
       key: id,
       className: `tab ${tab === id ? "on" : ""}`,
@@ -10914,7 +11960,10 @@ function App() {
   }), tab === "live" && /*#__PURE__*/React.createElement(LiveStatsTab, {
     events: events,
     homeTeam: homeTeam,
-    awayTeam: awayTeam
+    awayTeam: awayTeam,
+    seconds: seconds,
+    half: half,
+    halfLength: halfLength
   }), tab === "detailed" && /*#__PURE__*/React.createElement(DetailedStatsTab, {
     events: events,
     homeTeam: homeTeam,
@@ -10950,7 +11999,168 @@ function App() {
     onSave: handleUpdateEvent,
     onDelete: handleDeleteEvent,
     onCancel: () => setEditingEvent(null)
-  }), showAI && /*#__PURE__*/React.createElement(AIAnalystModal, {
+  }), showSync && /*#__PURE__*/React.createElement("div", {
+    className: "modal-shade",
+    onClick: () => setShowSync(false)
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "modal",
+    onClick: e => e.stopPropagation(),
+    style: {
+      maxWidth: 420
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "modal-h"
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    className: "tag"
+  }, "Multi-Device Sync"), /*#__PURE__*/React.createElement("div", {
+    className: "ttl"
+  }, "Real-time via WebRTC")), /*#__PURE__*/React.createElement("button", {
+    className: "modal-close",
+    onClick: () => setShowSync(false)
+  }, /*#__PURE__*/React.createElement(Icon, {
+    name: "close",
+    size: 14
+  }))), /*#__PURE__*/React.createElement("div", {
+    className: "modal-b",
+    style: {
+      padding: 18,
+      display: "flex",
+      flexDirection: "column",
+      gap: 16
+    }
+  }, syncStatus === "off" && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontFamily: "var(--fm)",
+      fontSize: 12,
+      color: "var(--t2)",
+      lineHeight: 1.6
+    }
+  }, "Host the session on one device, then join from tablets or phones with the 6-digit code. Viewers see events in real time. Requires internet."), /*#__PURE__*/React.createElement("button", {
+    className: "tbtn primary",
+    style: {
+      justifyContent: "center",
+      padding: "11px 0"
+    },
+    onClick: () => {
+      startHosting();
+      setShowSync(false);
+    }
+  }, "\uD83D\uDCE1 Start hosting \u2014 generate code"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 8,
+      alignItems: "center"
+    }
+  }, /*#__PURE__*/React.createElement("input", {
+    value: syncJoinCode,
+    onChange: e => setSyncJoinCode(e.target.value.toUpperCase()),
+    placeholder: "Enter 6-digit code",
+    maxLength: 6,
+    style: {
+      flex: 1,
+      fontSize: 18,
+      fontFamily: "var(--fm)",
+      letterSpacing: "0.2em",
+      textAlign: "center",
+      padding: "10px 12px",
+      background: "var(--bg-3)",
+      border: "1px solid var(--line)",
+      borderRadius: 8,
+      color: "var(--t1)"
+    }
+  }), /*#__PURE__*/React.createElement("button", {
+    className: "tbtn primary",
+    style: {
+      padding: "10px 16px"
+    },
+    onClick: () => joinSession(syncJoinCode)
+  }, "Join"))), syncStatus === "hosting" && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      textAlign: "center"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontFamily: "var(--fCond)",
+      fontSize: 11,
+      color: "var(--t3)",
+      letterSpacing: "0.1em",
+      textTransform: "uppercase",
+      marginBottom: 8
+    }
+  }, "Session Code"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontFamily: "var(--fd)",
+      fontSize: 52,
+      fontWeight: 700,
+      color: "var(--gold)",
+      letterSpacing: "0.25em",
+      background: "var(--bg-2)",
+      borderRadius: 12,
+      padding: "16px 24px",
+      border: "1px solid var(--line)"
+    }
+  }, syncCode), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontFamily: "var(--fm)",
+      fontSize: 12,
+      color: "var(--t3)",
+      marginTop: 8
+    }
+  }, syncPeerCount, " device", syncPeerCount !== 1 ? "s" : "", " connected")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontFamily: "var(--fm)",
+      fontSize: 11,
+      color: "var(--t2)",
+      background: "var(--bg-2)",
+      borderRadius: 8,
+      padding: "10px 14px",
+      lineHeight: 1.6
+    }
+  }, "Share this code with analysts on other devices. They enter it in the Join field. All events you log will appear on their screens instantly."), /*#__PURE__*/React.createElement("button", {
+    className: "tbtn danger",
+    style: {
+      justifyContent: "center"
+    },
+    onClick: stopSync
+  }, "Stop hosting")), syncStatus === "connected" && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      textAlign: "center",
+      color: "var(--score)",
+      fontFamily: "var(--fCond)",
+      fontSize: 14,
+      fontWeight: 700,
+      letterSpacing: "0.1em"
+    }
+  }, "\u2713 Connected \u2014 viewing live"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontFamily: "var(--fm)",
+      fontSize: 11,
+      color: "var(--t2)",
+      lineHeight: 1.6
+    }
+  }, "You are viewing a live session. Events logged on the host device appear here in real time. You cannot log events in viewer mode."), /*#__PURE__*/React.createElement("button", {
+    className: "tbtn",
+    style: {
+      justifyContent: "center"
+    },
+    onClick: stopSync
+  }, "Disconnect")), syncStatus === "error" && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      color: "var(--away)",
+      fontFamily: "var(--fCond)",
+      fontSize: 13,
+      fontWeight: 700,
+      textAlign: "center"
+    }
+  }, "\u26A0 Connection error"), /*#__PURE__*/React.createElement("button", {
+    className: "tbtn primary",
+    style: {
+      justifyContent: "center"
+    },
+    onClick: () => {
+      stopSync();
+    }
+  }, "Try again"))))), showAI && /*#__PURE__*/React.createElement(AIAnalystModal, {
     events: events,
     homeTeam: homeTeam,
     awayTeam: awayTeam,
@@ -10958,20 +12168,87 @@ function App() {
     half: half,
     phase: phase,
     onClose: () => setShowAI(false)
-  }));
+  }), reportHTML && /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "fixed",
+      inset: 0,
+      zIndex: 9999,
+      display: "flex",
+      flexDirection: "column",
+      background: "#000"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 10,
+      padding: "8px 14px",
+      background: "#002366",
+      flexShrink: 0
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontFamily: "var(--fCond)",
+      fontSize: 11,
+      fontWeight: 700,
+      color: "#FFD700",
+      letterSpacing: "0.1em",
+      textTransform: "uppercase",
+      flex: 1
+    }
+  }, "Match Report \u2014 ", homeTeam.name || "Home", " v ", awayTeam.name || "Away"), /*#__PURE__*/React.createElement("button", {
+    onClick: () => {
+      var _reportFrameRef$curre;
+      (_reportFrameRef$curre = reportFrameRef.current) == null || (_reportFrameRef$curre = _reportFrameRef$curre.contentWindow) == null || _reportFrameRef$curre.print();
+    },
+    style: {
+      background: "#FFD700",
+      color: "#002366",
+      border: "none",
+      borderRadius: 6,
+      padding: "7px 16px",
+      fontFamily: "var(--fCond)",
+      fontSize: 11,
+      fontWeight: 700,
+      letterSpacing: "0.08em",
+      cursor: "pointer"
+    }
+  }, "\uD83D\uDDA8 Print / Save PDF"), /*#__PURE__*/React.createElement("button", {
+    onClick: () => setReportHTML(null),
+    style: {
+      background: "rgba(255,255,255,0.15)",
+      color: "#fff",
+      border: "none",
+      borderRadius: 6,
+      padding: "7px 12px",
+      fontFamily: "var(--fCond)",
+      fontSize: 11,
+      fontWeight: 700,
+      cursor: "pointer"
+    }
+  }, "\u2715 Close")), /*#__PURE__*/React.createElement("iframe", {
+    ref: reportFrameRef,
+    srcDoc: reportHTML,
+    style: {
+      flex: 1,
+      border: "none",
+      background: "#fff"
+    },
+    title: "Match Report"
+  })));
 }
 
 // ─── Scoreboard ──────────────────────────────────────────────────────
-function Scoreboard(_ref77) {
-  let homeTeam = _ref77.homeTeam,
-    awayTeam = _ref77.awayTeam,
-    homeScore = _ref77.homeScore,
-    awayScore = _ref77.awayScore,
-    seconds = _ref77.seconds,
-    running = _ref77.running,
-    half = _ref77.half,
-    phase = _ref77.phase,
-    venue = _ref77.venue;
+function Scoreboard(_ref80) {
+  let homeTeam = _ref80.homeTeam,
+    awayTeam = _ref80.awayTeam,
+    homeScore = _ref80.homeScore,
+    awayScore = _ref80.awayScore,
+    seconds = _ref80.seconds,
+    running = _ref80.running,
+    half = _ref80.half,
+    phase = _ref80.phase,
+    venue = _ref80.venue;
   const phaseLabel = phase === "live" ? "Live" : phase === "ht" ? "Half Time" : phase === "ft" ? "Full Time" : "Pre-Match";
   const phaseClass = phase === "live" ? "live" : phase === "ht" ? "ht" : "";
   const jH = homeTeam.jersey || {
@@ -11090,21 +12367,21 @@ function Scoreboard(_ref77) {
 }
 
 // ─── Edit Event Modal ────────────────────────────────────────────────
-function EditEventModal(_ref78) {
-  let event = _ref78.event,
-    homeTeam = _ref78.homeTeam,
-    awayTeam = _ref78.awayTeam,
-    onSave = _ref78.onSave,
-    onDelete = _ref78.onDelete,
-    onCancel = _ref78.onCancel;
-  const _useState37 = useState({
+function EditEventModal(_ref81) {
+  let event = _ref81.event,
+    homeTeam = _ref81.homeTeam,
+    awayTeam = _ref81.awayTeam,
+    onSave = _ref81.onSave,
+    onDelete = _ref81.onDelete,
+    onCancel = _ref81.onCancel;
+  const _useState46 = useState({
       ...event
     }),
-    e = _useState37[0],
-    setE = _useState37[1];
-  const _useState38 = useState(`${Math.floor((event.time || 0) / 60)}:${String((event.time || 0) % 60).padStart(2, "0")}`),
-    timeInput = _useState38[0],
-    setTimeInput = _useState38[1];
+    e = _useState46[0],
+    setE = _useState46[1];
+  const _useState47 = useState(`${Math.floor((event.time || 0) / 60)}:${String((event.time || 0) % 60).padStart(2, "0")}`),
+    timeInput = _useState47[0],
+    setTimeInput = _useState47[1];
   const team = e.team === "home" ? homeTeam : e.team === "away" ? awayTeam : null;
   const parseTime = str => {
     const _str$split$map = str.split(":").map(n => parseInt(n) || 0),
@@ -11346,15 +12623,15 @@ function EditEventModal(_ref78) {
 }
 
 // ─── Saved Matches Screen (real storage) ─────────────────────────────
-function SavedMatchesScreen(_ref79) {
-  let onLoad = _ref79.onLoad,
-    onBack = _ref79.onBack;
-  const _useState39 = useState(null),
-    matches = _useState39[0],
-    setMatches = _useState39[1];
-  const _useState40 = useState(""),
-    search = _useState40[0],
-    setSearch = _useState40[1];
+function SavedMatchesScreen(_ref82) {
+  let onLoad = _ref82.onLoad,
+    onBack = _ref82.onBack;
+  const _useState48 = useState(null),
+    matches = _useState48[0],
+    setMatches = _useState48[1];
+  const _useState49 = useState(""),
+    search = _useState49[0],
+    setSearch = _useState49[1];
   useEffect(() => {
     listMatches().then(setMatches);
   }, []);
@@ -11364,10 +12641,10 @@ function SavedMatchesScreen(_ref79) {
     listMatches().then(setMatches);
   };
   const filtered = (matches || []).filter(m => {
-    var _m$homeTeam, _m$awayTeam;
+    var _m$homeTeam2, _m$awayTeam2;
     if (!search) return true;
     const s = search.toLowerCase();
-    return (((_m$homeTeam = m.homeTeam) == null ? void 0 : _m$homeTeam.name) || "").toLowerCase().includes(s) || (((_m$awayTeam = m.awayTeam) == null ? void 0 : _m$awayTeam.name) || "").toLowerCase().includes(s) || (m.venue || "").toLowerCase().includes(s);
+    return (((_m$homeTeam2 = m.homeTeam) == null ? void 0 : _m$homeTeam2.name) || "").toLowerCase().includes(s) || (((_m$awayTeam2 = m.awayTeam) == null ? void 0 : _m$awayTeam2.name) || "").toLowerCase().includes(s) || (m.venue || "").toLowerCase().includes(s);
   });
   return /*#__PURE__*/React.createElement("div", {
     style: {
@@ -11441,7 +12718,7 @@ function SavedMatchesScreen(_ref79) {
       textAlign: "right"
     }
   }, "Events"), /*#__PURE__*/React.createElement("th", null))), /*#__PURE__*/React.createElement("tbody", null, filtered.map(m => {
-    var _m$homeTeam2, _m$awayTeam2;
+    var _m$homeTeam3, _m$awayTeam3;
     const hS = scoreOf(m.events || [], "home");
     const aS = scoreOf(m.events || [], "away");
     return /*#__PURE__*/React.createElement("tr", {
@@ -11458,7 +12735,7 @@ function SavedMatchesScreen(_ref79) {
       style: {
         color: "var(--home)"
       }
-    }, ((_m$homeTeam2 = m.homeTeam) == null ? void 0 : _m$homeTeam2.name) || "Home"), /*#__PURE__*/React.createElement("span", {
+    }, ((_m$homeTeam3 = m.homeTeam) == null ? void 0 : _m$homeTeam3.name) || "Home"), /*#__PURE__*/React.createElement("span", {
       style: {
         color: "var(--t3)",
         margin: "0 6px"
@@ -11467,7 +12744,7 @@ function SavedMatchesScreen(_ref79) {
       style: {
         color: "var(--away)"
       }
-    }, ((_m$awayTeam2 = m.awayTeam) == null ? void 0 : _m$awayTeam2.name) || "Away")), /*#__PURE__*/React.createElement("td", {
+    }, ((_m$awayTeam3 = m.awayTeam) == null ? void 0 : _m$awayTeam3.name) || "Away")), /*#__PURE__*/React.createElement("td", {
       style: {
         color: "var(--t3)"
       }
@@ -11505,26 +12782,26 @@ function SavedMatchesScreen(_ref79) {
 // ─── Season Heatmap Screen ───────────────────────────────────────────
 // Aggregates multiple saved matches onto a single pitch — choose which
 // matches to include, filter by team/event-type/player.
-function SeasonHeatmapScreen(_ref80) {
-  let currentHomeTeam = _ref80.currentHomeTeam,
-    currentAwayTeam = _ref80.currentAwayTeam,
-    currentEvents = _ref80.currentEvents,
-    onBack = _ref80.onBack;
-  const _useState41 = useState(null),
-    savedMatches = _useState41[0],
-    setSavedMatches = _useState41[1];
-  const _useState42 = useState(new Set()),
-    selected = _useState42[0],
-    setSelected = _useState42[1];
-  const _useState43 = useState("home"),
-    teamFilter = _useState43[0],
-    setTeamFilter = _useState43[1];
-  const _useState44 = useState("all"),
-    typeFilter = _useState44[0],
-    setTypeFilter = _useState44[1];
-  const _useState45 = useState("all"),
-    playerFilter = _useState45[0],
-    setPlayerFilter = _useState45[1];
+function SeasonHeatmapScreen(_ref83) {
+  let currentHomeTeam = _ref83.currentHomeTeam,
+    currentAwayTeam = _ref83.currentAwayTeam,
+    currentEvents = _ref83.currentEvents,
+    onBack = _ref83.onBack;
+  const _useState50 = useState(null),
+    savedMatches = _useState50[0],
+    setSavedMatches = _useState50[1];
+  const _useState51 = useState(new Set()),
+    selected = _useState51[0],
+    setSelected = _useState51[1];
+  const _useState52 = useState("home"),
+    teamFilter = _useState52[0],
+    setTeamFilter = _useState52[1];
+  const _useState53 = useState("all"),
+    typeFilter = _useState53[0],
+    setTypeFilter = _useState53[1];
+  const _useState54 = useState("all"),
+    playerFilter = _useState54[0],
+    setPlayerFilter = _useState54[1];
   useEffect(() => {
     listMatches().then(ms => {
       setSavedMatches(ms || []);
@@ -11709,7 +12986,7 @@ function SeasonHeatmapScreen(_ref80) {
       fontSize: 12
     }
   }, "No saved matches yet."), (savedMatches || []).map(m => {
-    var _m$homeTeam3, _m$awayTeam3;
+    var _m$homeTeam4, _m$awayTeam4;
     const hS = scoreOf(m.events || [], "home");
     const aS = scoreOf(m.events || [], "away");
     return /*#__PURE__*/React.createElement("label", {
@@ -11744,7 +13021,7 @@ function SeasonHeatmapScreen(_ref80) {
       style: {
         color: "var(--home)"
       }
-    }, ((_m$homeTeam3 = m.homeTeam) == null ? void 0 : _m$homeTeam3.name) || "Home"), /*#__PURE__*/React.createElement("span", {
+    }, ((_m$homeTeam4 = m.homeTeam) == null ? void 0 : _m$homeTeam4.name) || "Home"), /*#__PURE__*/React.createElement("span", {
       style: {
         color: "var(--t3)",
         margin: "0 5px"
@@ -11753,7 +13030,7 @@ function SeasonHeatmapScreen(_ref80) {
       style: {
         color: "var(--away)"
       }
-    }, ((_m$awayTeam3 = m.awayTeam) == null ? void 0 : _m$awayTeam3.name) || "Away")), /*#__PURE__*/React.createElement("div", {
+    }, ((_m$awayTeam4 = m.awayTeam) == null ? void 0 : _m$awayTeam4.name) || "Away")), /*#__PURE__*/React.createElement("div", {
       style: {
         fontFamily: "var(--fm)",
         fontSize: 10,
@@ -11803,9 +13080,9 @@ function SeasonHeatmapScreen(_ref80) {
       gap: 6,
       flexWrap: "wrap"
     }
-  }, [["all", "All"], ["shot", "Shots"], ["turnover", "Turnovers"], ["kickout", "Kickouts"], ["foul", "Fouls"]].map(_ref81 => {
-    let k = _ref81[0],
-      l = _ref81[1];
+  }, [["all", "All"], ["shot", "Shots"], ["turnover", "Turnovers"], ["kickout", "Kickouts"], ["foul", "Fouls"]].map(_ref84 => {
+    let k = _ref84[0],
+      l = _ref84[1];
     return /*#__PURE__*/React.createElement("button", {
       key: k,
       onClick: () => setTypeFilter(k),
@@ -11877,10 +13154,10 @@ function SeasonHeatmapScreen(_ref80) {
       fontSize: 11,
       color: "var(--t3)"
     }
-  }, [["circle", "var(--score)", "Goal/Score"], ["ring", "var(--wide)", "Miss"], ["diamond", "var(--score)", "T/O Won"], ["diamond", "var(--away)", "T/O Lost"], ["tri", "var(--gold)", "Foul"], ["cross", "var(--home)", "Kickout"]].map(_ref82 => {
-    let shape = _ref82[0],
-      col = _ref82[1],
-      l = _ref82[2];
+  }, [["circle", "var(--score)", "Goal/Score"], ["ring", "var(--wide)", "Miss"], ["diamond", "var(--score)", "T/O Won"], ["diamond", "var(--away)", "T/O Lost"], ["tri", "var(--gold)", "Foul"], ["cross", "var(--home)", "Kickout"]].map(_ref85 => {
+    let shape = _ref85[0],
+      col = _ref85[1],
+      l = _ref85[2];
     return /*#__PURE__*/React.createElement("span", {
       key: l,
       style: {
@@ -11922,10 +13199,8 @@ function GAATracker() {
   useStyles();
   return /*#__PURE__*/React.createElement(App, null);
 }
-const _container = document.getElementById('root');
-const _root = ReactDOM.createRoot(_container);
-_root.render(React.createElement(GAATracker, null));
-})();
-  </script>
+const _c = document.getElementById('root');
+ReactDOM.createRoot(_c).render(React.createElement(GAATracker, null));
+})();</script>
 </body>
 </html>
