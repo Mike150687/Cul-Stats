@@ -1,17 +1,12 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
-  <meta name="mobile-web-app-capable" content="yes"/>
-  <meta name="apple-mobile-web-app-capable" content="yes"/>
-  <meta name="theme-color" content="#0b0c11"/>
-  <title>GAA Match Tracker</title>
-  <style>*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}html,body{height:100%;background:#0b0c11;color:#edeae4;-webkit-tap-highlight-color:transparent;overscroll-behavior:none;}#root{min-height:100%;display:flex;flex-direction:column;}</style>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/><meta name="mobile-web-app-capable" content="yes"/><meta name="theme-color" content="#0b0c11"/>
+<title>GAA Match Tracker</title>
+<style>*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}html,body{height:100%;background:#0b0c11;color:#edeae4;-webkit-tap-highlight-color:transparent;overscroll-behavior:none;}#root{min-height:100%;display:flex;flex-direction:column;}</style>
 </head>
-<body>
-  <div id="root"></div>
-  <script>/**
+<body><div id="root"></div>
+<script>/**
  * @license React
  * react.production.min.js
  *
@@ -42,8 +37,7 @@ render:a}};c.isValidElement=M;c.lazy=function(a){return{$$typeof:Aa,_payload:{_s
 c.useEffect=function(a,b){return g.current.useEffect(a,b)};c.useId=function(){return g.current.useId()};c.useImperativeHandle=function(a,b,c){return g.current.useImperativeHandle(a,b,c)};c.useInsertionEffect=function(a,b){return g.current.useInsertionEffect(a,b)};c.useLayoutEffect=function(a,b){return g.current.useLayoutEffect(a,b)};c.useMemo=function(a,b){return g.current.useMemo(a,b)};c.useReducer=function(a,b,c){return g.current.useReducer(a,b,c)};c.useRef=function(a){return g.current.useRef(a)};
 c.useState=function(a){return g.current.useState(a)};c.useSyncExternalStore=function(a,b,c){return g.current.useSyncExternalStore(a,b,c)};c.useTransition=function(){return g.current.useTransition()};c.version="18.3.1"});
 })();
-</script>
-  <script>/**
+</script><script>/**
  * @license React
  * react-dom.production.min.js
  *
@@ -311,7 +305,7 @@ var d=null!=c&&c.hydratedSources||null,e=!1,f="",g=aj;null!==c&&void 0!==c&&(!0=
 function(a,b,c){if(!Vd(b))throw Error(m(200));return Wd(null,a,b,!1,c)};Q.unmountComponentAtNode=function(a){if(!Vd(a))throw Error(m(40));return a._reactRootContainer?(yb(function(){Wd(null,null,a,!1,function(){a._reactRootContainer=null;a[Ja]=null})}),!0):!1};Q.unstable_batchedUpdates=Tf;Q.unstable_renderSubtreeIntoContainer=function(a,b,c,d){if(!Vd(c))throw Error(m(200));if(null==a||void 0===a._reactInternals)throw Error(m(38));return Wd(a,b,c,!1,d)};Q.version="18.3.1-next-f1338f8080-20240426"});
 })();
 </script>
-  <script>(function(){
+<script>(function(){
 function _extends() { return _extends = Object.assign ? Object.assign.bind() : function (n) { for (var e = 1; e < arguments.length; e++) { var t = arguments[e]; for (var r in t) ({}).hasOwnProperty.call(t, r) && (n[r] = t[r]); } return n; }, _extends.apply(null, arguments); }
 // ─────────────────────────────────────────────────────────────────────
 // GAA Match Tracker — full app component (drop-in for Vite/CRA)
@@ -339,11 +333,12 @@ function _extends() { return _extends = Object.assign ? Object.assign.bind() : f
 // real event stream + saved-matches storage when you're ready.
 // ─────────────────────────────────────────────────────────────────────
 
-const _React = React,
-  useState = _React.useState,
-  useEffect = _React.useEffect,
-  useMemo = _React.useMemo,
-  useRef = _React.useRef;
+const {
+  useState,
+  useEffect,
+  useMemo,
+  useRef
+} = React;
 
 // ─── Injected stylesheet ─────────────────────────────────────────────
 const STYLES = `/* ─── GAA Tracker · Design tokens ────────────────────────────────────── */
@@ -959,17 +954,16 @@ async function deleteMatch(id) {
 // Reads a File, draws into a canvas with max-256 dimension, returns
 // a small base64 PNG (~10-40KB depending on detail) suitable for inline
 // storage with the team record.
-async function readAndResizeImage(file, maxDim) {
-  if (maxDim === void 0) {
-    maxDim = 256;
-  }
+async function readAndResizeImage(file, maxDim = 256) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = ev => {
       const img = new Image();
       img.onload = () => {
-        let w = img.width,
-          h = img.height;
+        let {
+          width: w,
+          height: h
+        } = img;
         const scale = Math.min(1, maxDim / Math.max(w, h));
         w = Math.round(w * scale);
         h = Math.round(h * scale);
@@ -1054,9 +1048,7 @@ async function exportToXLSX(events, homeTeam, awayTeam) {
     return [fmt(e.time || 0), e.half || "", e.type || "", teamName(e.team), playerName(e), e.outcome || "", e.source || "", e.pressure ? "yes" : e.type === "shot" && e.pressure === false ? "no" : "", e.result || "", e.method || "", e.card || "", ((_e$loc3 = e.loc) == null ? void 0 : _e$loc3.x) ?? "", ((_e$loc4 = e.loc) == null ? void 0 : _e$loc4.y) ?? ""];
   })];
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(eventsData), "Events");
-  for (const _ref of [["home", hAgg, hN], ["away", aAgg, aN]]) {
-    const team = _ref[0];
-    const tN = _ref[2];
+  for (const [team,, tN] of [["home", hAgg, hN], ["away", aAgg, aN]]) {
     const teamObj = team === "home" ? homeTeam : awayTeam;
     const pHeader = ["#", "Player", "Pos", "Goals", "2-Pt", "Points", "Wides", "Off Post", "Blocked", "Saved", "Shots", "Total Pts", "xP", "xP +/-"];
     const rows = teamObj.players.map(p => {
@@ -1278,9 +1270,10 @@ function shotSector(normalX, y, isGoalAttempt, is2PointAttempt, is45m, isPlacedB
 function shotXP(event) {
   var _SHOT_OUTCOMES$find;
   if (!event.loc) return 0;
-  const _event$loc = event.loc,
-    x = _event$loc.x,
-    y = _event$loc.y;
+  const {
+    x,
+    y
+  } = event.loc;
   // halDir from original: homeAttacksLeft at event-creation time.
   // In this mockup we treat home as attacking RIGHT by default (halDir=false).
   const halDir = event.halDir !== undefined ? event.halDir : false;
@@ -1316,15 +1309,19 @@ function totalXP(events) {
 
 // ─── Kickout helpers ─────────────────────────────────────────────────
 // length: short (own 21-45m), mid (over halfway), long (past opp 45m)
-function kickoutLength(e) {
-  if (!e.loc) return "mid";
-  // for home, goal is at left, so kickout target x: <50 = short, >60 = long
-  const attackingRight = e.team === "home";
-  const goal_side = attackingRight ? 0 : 100;
-  const dist = Math.abs(e.loc.x - goal_side);
-  if (dist < 30) return "short";
-  if (dist < 55) return "mid";
-  return "long";
+function kickoutLength(e, homeAttacksLeft) {
+  if (!e.loc) return "long"; // no location = assume long
+  // Use halDir stored on the event (set when event was logged).
+  // Fall back to the homeAttacksLeft parameter if halDir is absent (older events).
+  const halDir = e.halDir !== undefined ? e.halDir : homeAttacksLeft || false;
+  // attacksLeft = true → team scores at x≈0 (left goal), their OWN goal is at x≈100
+  const attacksLeft = e.team === "home" ? halDir : !halDir;
+  const goalX = attacksLeft ? 100 : 0; // x-coord of kicking team's own goal (0-100%)
+  const dist = Math.abs(e.loc.x - goalX);
+  // 45m line ≈ 31% of pitch width (45m ÷ 145m).
+  // Short = target lands WITHIN their own 45m line (dist < 31%).
+  // Long  = target travels PAST their 45m line (dist ≥ 31%).
+  return dist < 31 ? "short" : "long";
 }
 
 // ─── T/O zone ────────────────────────────────────────────────────────
@@ -1370,33 +1367,120 @@ const panelPlayers = team => (team.players || []).filter(p => p.pos || p.isSub);
 // origin: "kickout" | "turnover" | "score_against" | "start"
 function buildPossessions(events) {
   const sorted = [...events].filter(e => e.team && e.type !== "sub" && e.type !== "card").sort((a, b) => (a.half || 1) - (b.half || 1) || a.time - b.time);
+
+  // Pre-scan: mark fouls whose next meaningful event is a placed free.
+  // Those are dead-ball fouls — the gap between whistle and free is excluded from BIP.
+  const DEAD_BALL_SRC = new Set(["free", "2free", "mark", "45m"]);
+  const foulDeadBall = new Set();
+  sorted.forEach((e, i) => {
+    if (e.type !== "foul") return;
+    for (let j = i + 1; j < sorted.length; j++) {
+      const ne = sorted[j];
+      if (ne.type === "foul") continue;
+      if (ne.type === "shot" && DEAD_BALL_SRC.has(ne.source)) foulDeadBall.add(e.id);
+      break;
+    }
+  });
   const poss = [];
   let cur = null;
+  // When a dead-ball foul interrupts a possession we save state here.
+  // If the free goes to the SAME team  → resume (continuation, same possession count).
+  // If the free goes to a DIFFERENT team → discard saved state, new possession.
+  let pendingResume = null;
   const close = endTime => {
-    if (cur) {
-      cur.endTime = endTime;
-      cur.duration = Math.max(0, endTime - cur.startTime);
-      cur.ballInPlaySec = cur.duration; // simple proxy
-      // tag score outcome
-      const goalEv = cur.events.find(e => e.type === "shot" && e.outcome === "goal");
-      const scoreEv = cur.events.find(e => e.type === "shot" && ["goal", "point", "2point"].includes(e.outcome));
-      cur.pts = scoreEv ? actualPts(scoreEv.outcome) : 0;
-      cur.shot = cur.events.some(e => e.type === "shot");
-      poss.push(cur);
-      cur = null;
-    }
+    if (!cur) return;
+    cur.endTime = endTime;
+    // BIP = time before foul (accumulated) + time after free kick (from _resumeTime)
+    const postBIP = cur._resumeTime !== undefined ? Math.max(0, endTime - cur._resumeTime) : Math.max(0, endTime - cur.startTime);
+    cur.duration = postBIP + (cur._preBIP || 0);
+    cur.ballInPlaySec = cur.duration;
+    const scoreEv = cur.events.find(e => e.type === "shot" && ["goal", "point", "2point"].includes(e.outcome));
+    cur.pts = scoreEv ? actualPts(scoreEv.outcome) : 0;
+    cur.shot = cur.events.some(e => e.type === "shot");
+    poss.push(cur);
+    cur = null;
   };
-  sorted.forEach((e, i) => {
+  sorted.forEach(e => {
     if (e.type === "half") return;
-    // Start of a new possession?
-    const newPoss = !cur || cur.team !== e.team || e.type === "kickout";
+
+    // ── Kickout ───────────────────────────────────────────────────────────
+    if (e.type === "kickout") {
+      pendingResume = null;
+      close(e.time);
+      const winner = e.result === "won" ? e.team : e.team === "home" ? "away" : "home";
+      cur = {
+        team: winner,
+        startTime: e.time,
+        half: e.half || 1,
+        events: [],
+        duration: 0,
+        ballInPlaySec: 0,
+        origin: "kickout"
+      };
+      cur.events.push(e);
+      return;
+    }
+
+    // ── Foul ──────────────────────────────────────────────────────────────
+    if (e.type === "foul") {
+      if (foulDeadBall.has(e.id)) {
+        // Save possession state so we can decide after the free.
+        pendingResume = cur ? {
+          team: cur.team,
+          startTime: cur.startTime,
+          half: cur.half || 1,
+          events: [...cur.events, e],
+          origin: cur.origin,
+          // BIP accumulated to this point (including any prior resumed BIP)
+          bipSoFar: Math.max(0, e.time - (cur._resumeTime ?? cur.startTime)) + (cur._preBIP || 0)
+        } : null;
+        if (cur) cur.events.push(e);
+        close(e.time); // close at the whistle; gap to free = excluded dead time
+      }
+      // Live foul: skip — possession and BIP clock continue unchanged.
+      return;
+    }
+
+    // ── Free kick following a dead-ball foul ──────────────────────────────
+    if (pendingResume && e.type === "shot" && DEAD_BALL_SRC.has(e.source)) {
+      if (e.team === pendingResume.team) {
+        // SAME team takes the free → continuation of the previous possession.
+        // Keep the original startTime / half for quarter bucketing.
+        // BIP clock restarts at this event; pre-foul BIP is carried in _preBIP.
+        cur = {
+          team: e.team,
+          startTime: pendingResume.startTime,
+          half: pendingResume.half,
+          events: [...pendingResume.events, e],
+          duration: 0,
+          ballInPlaySec: 0,
+          _preBIP: pendingResume.bipSoFar,
+          _resumeTime: e.time,
+          origin: pendingResume.origin,
+          continued: true
+        };
+        pendingResume = null;
+        if (["goal", "point", "2point", "wideG", "wideP", "short", "45"].includes(e.outcome)) {
+          close(e.time);
+        }
+        return;
+      }
+      // DIFFERENT team takes the free → new possession (fall through).
+      pendingResume = null;
+    } else if (pendingResume) {
+      // Unexpected event while waiting for the free — clear pending state.
+      pendingResume = null;
+    }
+
+    // ── Regular events ────────────────────────────────────────────────────
+    const newPoss = !cur || cur.team !== e.team;
     if (newPoss) {
       close(e.time);
-      const origin = e.type === "kickout" ? "kickout" : e.type === "turnover" && e.result === "won" ? "turnover" : "open";
+      const origin = e.type === "turnover" && e.result === "won" ? "turnover" : "open";
       cur = {
         team: e.team,
         startTime: e.time,
-        half: e.half,
+        half: e.half || 1,
         events: [],
         duration: 0,
         ballInPlaySec: 0,
@@ -1404,9 +1488,8 @@ function buildPossessions(events) {
       };
     }
     cur.events.push(e);
-    // dead-ball outcomes end possession after this event
     if (e.type === "shot" && ["goal", "point", "2point", "wideG", "wideP", "short", "45"].includes(e.outcome)) {
-      close(e.time + 4); // assume 4s for dead-ball
+      close(e.time);
     }
     if (e.type === "turnover" && e.result === "lost") {
       close(e.time);
@@ -1462,13 +1545,12 @@ function consecutiveScoreless(possessions, team) {
 // ─── GAA Tracker · Pitch + Icons ─────────────────────────────────────
 
 // Minimal stroke icon set — replaces all emoji in the original
-function Icon(_ref2) {
-  let name = _ref2.name,
-    _ref2$size = _ref2.size,
-    size = _ref2$size === void 0 ? 14 : _ref2$size,
-    _ref2$color = _ref2.color,
-    color = _ref2$color === void 0 ? "currentColor" : _ref2$color,
-    style = _ref2.style;
+function Icon({
+  name,
+  size = 14,
+  color = "currentColor",
+  style
+}) {
   const s = size,
     st = {
       width: s,
@@ -1721,10 +1803,11 @@ function Icon(_ref2) {
 // ─── Pitch base ──────────────────────────────────────────────────────
 // Refined GAA pitch — same geometry as your original, cleaner stroke
 // ViewBox "0 0 300 170".
-function PitchBase(_ref3) {
-  let children = _ref3.children,
-    onClick = _ref3.onClick,
-    dim = _ref3.dim;
+function PitchBase({
+  children,
+  onClick,
+  dim
+}) {
   return /*#__PURE__*/React.createElement("svg", {
     viewBox: "0 0 300 170",
     onClick: onClick,
@@ -1898,11 +1981,11 @@ function PitchBase(_ref3) {
 }
 
 // ─── Pitch selector (input) ─────────────────────────────────────────
-function PitchSelector(_ref4) {
-  let onSelect = _ref4.onSelect,
-    selected = _ref4.selected,
-    _ref4$attackingLeft = _ref4.attackingLeft,
-    attackingLeft = _ref4$attackingLeft === void 0 ? false : _ref4$attackingLeft;
+function PitchSelector({
+  onSelect,
+  selected,
+  attackingLeft = false
+}) {
   const handle = e => {
     const r = e.currentTarget.getBoundingClientRect();
     const x = +((e.clientX - r.left) / r.width * 100).toFixed(1);
@@ -1942,11 +2025,12 @@ function PitchSelector(_ref4) {
 }
 
 // ─── Lineup pitch (renders 15 jersey dots) ───────────────────────────
-function LineupPitch(_ref5) {
-  let team = _ref5.team,
-    accent = _ref5.accent,
-    onTap = _ref5.onTap,
-    selectedPos = _ref5.selectedPos;
+function LineupPitch({
+  team,
+  accent,
+  onTap,
+  selectedPos
+}) {
   const r = 9;
   return /*#__PURE__*/React.createElement("div", {
     className: "pitch-wrap"
@@ -1992,9 +2076,10 @@ function LineupPitch(_ref5) {
 }
 
 // ─── Marker renderer for map ─────────────────────────────────────────
-function PitchMarker(_ref6) {
-  let e = _ref6.e,
-    dim = _ref6.dim;
+function PitchMarker({
+  e,
+  dim
+}) {
   if (!e.loc) return null;
   const cx = e.loc.x / 100 * 300,
     cy = e.loc.y / 100 * 170;
@@ -2276,9 +2361,10 @@ function aggregateStats(events, teamId) {
 }
 
 // ─── Mini KPI sparkline (mock as cumulative scores over time) ────────
-function ScoreSpark(_ref7) {
-  let events = _ref7.events,
-    team = _ref7.team;
+function ScoreSpark({
+  events,
+  team
+}) {
   const W = 100,
     H = 30;
   const shots = events.filter(e => e.type === "shot" && e.team === team && e.time !== undefined).sort((a, b) => a.time - b.time);
@@ -2311,13 +2397,14 @@ function ScoreSpark(_ref7) {
 }
 
 // ─── Live Stats Tab ──────────────────────────────────────────────────
-function LiveStatsTab(_ref8) {
-  let events = _ref8.events,
-    homeTeam = _ref8.homeTeam,
-    awayTeam = _ref8.awayTeam,
-    seconds = _ref8.seconds,
-    half = _ref8.half,
-    halfLength = _ref8.halfLength;
+function LiveStatsTab({
+  events,
+  homeTeam,
+  awayTeam,
+  seconds,
+  half,
+  halfLength
+}) {
   const h = aggregateStats(events, "home");
   const a = aggregateStats(events, "away");
   const hWin = winProb(events, seconds, half, halfLength);
@@ -2670,85 +2757,80 @@ function LiveStatsTab(_ref8) {
     style: {
       marginBottom: 20
     }
-  }, [[homeTeam, h, "home"], [awayTeam, a, "away"]].map(_ref9 => {
-    let t = _ref9[0],
-      s = _ref9[1],
-      tk = _ref9[2];
-    return /*#__PURE__*/React.createElement("div", {
-      className: "card",
-      key: tk
-    }, /*#__PURE__*/React.createElement("div", {
-      className: "card-h"
-    }, /*#__PURE__*/React.createElement("h3", null, t.name), s.activeRun >= 2 && /*#__PURE__*/React.createElement("span", {
-      style: {
-        fontFamily: "var(--fui)",
-        fontSize: 10,
-        fontWeight: 700,
-        letterSpacing: "0.14em",
-        color: "var(--score)",
-        background: "var(--score-d)",
-        padding: "3px 9px",
-        borderRadius: 100
-      }
-    }, "\uD83D\uDD25 ON FIRE"), s.scoreless.active >= 3 && /*#__PURE__*/React.createElement("span", {
-      style: {
-        fontFamily: "var(--fui)",
-        fontSize: 10,
-        fontWeight: 700,
-        letterSpacing: "0.14em",
-        color: "var(--away)",
-        background: "var(--away-d)",
-        padding: "3px 9px",
-        borderRadius: 100
-      }
-    }, "\u26A0 COLD")), /*#__PURE__*/React.createElement("div", {
-      className: "card-b",
-      style: {
-        display: "grid",
-        gridTemplateColumns: "1fr 1fr 1fr",
-        gap: 14
-      }
-    }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
-      className: "kpi-l"
-    }, "Active"), /*#__PURE__*/React.createElement("div", {
-      className: "kpi-v",
-      style: {
-        color: s.activeRun >= 2 ? "var(--score)" : "var(--t1)"
-      }
-    }, s.activeRun), /*#__PURE__*/React.createElement("div", {
-      className: "kpi-s"
-    }, "scores in a row")), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
-      className: "kpi-l"
-    }, "Longest"), /*#__PURE__*/React.createElement("div", {
-      className: "kpi-v",
-      style: {
-        color: tk === "home" ? "var(--home)" : "var(--away)"
-      }
-    }, s.longestRun), /*#__PURE__*/React.createElement("div", {
-      className: "kpi-s"
-    }, s.longestRunPts, " pts")), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
-      className: "kpi-l"
-    }, "Scoreless"), /*#__PURE__*/React.createElement("div", {
-      className: "kpi-v",
-      style: {
-        color: s.scoreless.active >= 3 ? "var(--away)" : "var(--t1)"
-      }
-    }, s.scoreless.active), /*#__PURE__*/React.createElement("div", {
-      className: "kpi-s"
-    }, "max ", s.scoreless.max, " \xB7 ", s.scoreless.total, " poss"))), /*#__PURE__*/React.createElement("div", {
-      style: {
-        padding: "0 16px 14px"
-      }
-    }, /*#__PURE__*/React.createElement("div", {
-      className: "kpi-s",
-      style: {
-        marginBottom: 6
-      }
-    }, "Last 8 possessions"), /*#__PURE__*/React.createElement(PossessionStrip, {
-      events: events,
-      team: tk
-    })));
-  })), /*#__PURE__*/React.createElement("div", {
+  }, [[homeTeam, h, "home"], [awayTeam, a, "away"]].map(([t, s, tk]) => /*#__PURE__*/React.createElement("div", {
+    className: "card",
+    key: tk
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "card-h"
+  }, /*#__PURE__*/React.createElement("h3", null, t.name), s.activeRun >= 2 && /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontFamily: "var(--fui)",
+      fontSize: 10,
+      fontWeight: 700,
+      letterSpacing: "0.14em",
+      color: "var(--score)",
+      background: "var(--score-d)",
+      padding: "3px 9px",
+      borderRadius: 100
+    }
+  }, "\uD83D\uDD25 ON FIRE"), s.scoreless.active >= 3 && /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontFamily: "var(--fui)",
+      fontSize: 10,
+      fontWeight: 700,
+      letterSpacing: "0.14em",
+      color: "var(--away)",
+      background: "var(--away-d)",
+      padding: "3px 9px",
+      borderRadius: 100
+    }
+  }, "\u26A0 COLD")), /*#__PURE__*/React.createElement("div", {
+    className: "card-b",
+    style: {
+      display: "grid",
+      gridTemplateColumns: "1fr 1fr 1fr",
+      gap: 14
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    className: "kpi-l"
+  }, "Active"), /*#__PURE__*/React.createElement("div", {
+    className: "kpi-v",
+    style: {
+      color: s.activeRun >= 2 ? "var(--score)" : "var(--t1)"
+    }
+  }, s.activeRun), /*#__PURE__*/React.createElement("div", {
+    className: "kpi-s"
+  }, "scores in a row")), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    className: "kpi-l"
+  }, "Longest"), /*#__PURE__*/React.createElement("div", {
+    className: "kpi-v",
+    style: {
+      color: tk === "home" ? "var(--home)" : "var(--away)"
+    }
+  }, s.longestRun), /*#__PURE__*/React.createElement("div", {
+    className: "kpi-s"
+  }, s.longestRunPts, " pts")), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    className: "kpi-l"
+  }, "Scoreless"), /*#__PURE__*/React.createElement("div", {
+    className: "kpi-v",
+    style: {
+      color: s.scoreless.active >= 3 ? "var(--away)" : "var(--t1)"
+    }
+  }, s.scoreless.active), /*#__PURE__*/React.createElement("div", {
+    className: "kpi-s"
+  }, "max ", s.scoreless.max, " \xB7 ", s.scoreless.total, " poss"))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: "0 16px 14px"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "kpi-s",
+    style: {
+      marginBottom: 6
+    }
+  }, "Last 8 possessions"), /*#__PURE__*/React.createElement(PossessionStrip, {
+    events: events,
+    team: tk
+  }))))), /*#__PURE__*/React.createElement("div", {
     className: "sec"
   }, /*#__PURE__*/React.createElement("div", {
     className: "sec-t"
@@ -2761,11 +2843,7 @@ function LiveStatsTab(_ref8) {
     }
   }, /*#__PURE__*/React.createElement("div", {
     className: "cmp"
-  }, rows.map(_ref0 => {
-    let label = _ref0[0],
-      hv = _ref0[1],
-      av = _ref0[2],
-      hb = _ref0[3];
+  }, rows.map(([label, hv, av, hb]) => {
     const hn = typeof hv === "string" ? parseFloat(hv) : hv;
     const an = typeof av === "string" ? parseFloat(av) : av;
     let hwin = false,
@@ -2800,54 +2878,50 @@ function LiveStatsTab(_ref8) {
     style: {
       marginBottom: 20
     }
-  }, [[homeTeam, h, "home"], [awayTeam, a, "away"]].map(_ref1 => {
-    let t = _ref1[0],
-      s = _ref1[1],
-      k = _ref1[2];
-    return /*#__PURE__*/React.createElement("div", {
-      className: "card",
-      key: k
-    }, /*#__PURE__*/React.createElement("div", {
-      className: "card-h"
-    }, /*#__PURE__*/React.createElement("h3", null, t.name), /*#__PURE__*/React.createElement("span", {
-      className: "sec-aux"
-    }, t.short)), /*#__PURE__*/React.createElement("div", {
-      className: "card-b",
-      style: {
-        display: "grid",
-        gridTemplateColumns: "1fr 1fr",
-        gap: 14
-      }
-    }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
-      className: "kpi-l"
-    }, "Under pressure"), /*#__PURE__*/React.createElement("div", {
-      className: "kpi-v",
-      style: {
-        color: "var(--away)"
-      }
-    }, s.pConv ?? "–", "%"), /*#__PURE__*/React.createElement("div", {
-      className: "kpi-s"
-    }, s.pressured, " shots")), /*#__PURE__*/React.createElement("div", {
-      style: {
-        textAlign: "right"
-      }
-    }, /*#__PURE__*/React.createElement("div", {
-      className: "kpi-l"
-    }, "Uncontested"), /*#__PURE__*/React.createElement("div", {
-      className: "kpi-v",
-      style: {
-        color: "var(--score)"
-      }
-    }, s.uConv ?? "–", "%"), /*#__PURE__*/React.createElement("div", {
-      className: "kpi-s"
-    }, s.uncontested, " shots"))));
-  })));
+  }, [[homeTeam, h, "home"], [awayTeam, a, "away"]].map(([t, s, k]) => /*#__PURE__*/React.createElement("div", {
+    className: "card",
+    key: k
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "card-h"
+  }, /*#__PURE__*/React.createElement("h3", null, t.name), /*#__PURE__*/React.createElement("span", {
+    className: "sec-aux"
+  }, t.short)), /*#__PURE__*/React.createElement("div", {
+    className: "card-b",
+    style: {
+      display: "grid",
+      gridTemplateColumns: "1fr 1fr",
+      gap: 14
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    className: "kpi-l"
+  }, "Under pressure"), /*#__PURE__*/React.createElement("div", {
+    className: "kpi-v",
+    style: {
+      color: "var(--away)"
+    }
+  }, s.pConv ?? "–", "%"), /*#__PURE__*/React.createElement("div", {
+    className: "kpi-s"
+  }, s.pressured, " shots")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      textAlign: "right"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "kpi-l"
+  }, "Uncontested"), /*#__PURE__*/React.createElement("div", {
+    className: "kpi-v",
+    style: {
+      color: "var(--score)"
+    }
+  }, s.uConv ?? "–", "%"), /*#__PURE__*/React.createElement("div", {
+    className: "kpi-s"
+  }, s.uncontested, " shots")))))));
 }
 
 // ─── Possession Strip — last 8 possessions visualised ────────────────
-function PossessionStrip(_ref10) {
-  let events = _ref10.events,
-    team = _ref10.team;
+function PossessionStrip({
+  events,
+  team
+}) {
   const poss = buildPossessions(events).filter(p => p.team === team).slice(-8);
   if (poss.length === 0) return /*#__PURE__*/React.createElement("div", {
     style: {
@@ -2919,13 +2993,7 @@ const QCOLS = [{
 const HEAVY = new Set(["h1", "h2", "tot"]);
 
 // Get the quarter bucket for an event (relative to half start)
-function getQuarter(e, h1Start, h2Start) {
-  if (h1Start === void 0) {
-    h1Start = 0;
-  }
-  if (h2Start === void 0) {
-    h2Start = 1020;
-  }
+function getQuarter(e, h1Start = 0, h2Start = 1020) {
   if (e.half === 1) {
     const t = e.time - h1Start;
     return t < QCUT ? "q1" : "q2";
@@ -2941,10 +3009,7 @@ function getHalfId(e) {
 }
 
 // Build a 7-column bucket from an array of events + value function
-function bucketize(events, valFn) {
-  if (valFn === void 0) {
-    valFn = () => 1;
-  }
+function bucketize(events, valFn = () => 1) {
   const out = {
     q1: 0,
     q2: 0,
@@ -2964,12 +3029,7 @@ function bucketize(events, valFn) {
   });
   return out;
 }
-const formatBucket = function (b, fmt) {
-  if (fmt === void 0) {
-    fmt = v => v;
-  }
-  return QCOLS.map(c => fmt(b[c.id]));
-};
+const formatBucket = (b, fmt = v => v) => QCOLS.map(c => fmt(b[c.id]));
 const formatBucketSafe = (b, fmt) => QCOLS.map(c => b[c.id] !== undefined ? fmt(b[c.id]) : "–");
 const pctBucket = (num, den) => QCOLS.reduce((acc, c) => ({
   ...acc,
@@ -2981,7 +3041,7 @@ const ratioBucket = (num, den) => QCOLS.reduce((acc, c) => ({
 }), {});
 
 // ─── Per-team aggregation for Q-based view ───────────────────────────
-function quartAggregate(events, teamId) {
+function quartAggregate(events, teamId, homeAttacksLeft) {
   const opp = teamId === "home" ? "away" : "home";
   const possAll = buildPossessions(events);
   const poss = possAll.filter(p => p.team === teamId);
@@ -3082,8 +3142,8 @@ function quartAggregate(events, teamId) {
 
   // Kickouts (own)
   const kos = events.filter(e => e.type === "kickout" && e.team === teamId);
-  const koShort = kos.filter(k => (k.length || kickoutLength(k)) === "short" || (k.length || kickoutLength(k)) === "mid");
-  const koLong = kos.filter(k => (k.length || kickoutLength(k)) === "long");
+  const koShort = kos.filter(k => kickoutLength(k, homeAttacksLeft) === "short");
+  const koLong = kos.filter(k => kickoutLength(k, homeAttacksLeft) === "long");
   const koShortQ = bucketize(koShort);
   const koLongQ = bucketize(koLong);
   const koShortWonQ = bucketize(koShort.filter(k => k.result === "won"));
@@ -3152,10 +3212,11 @@ function quartAggregate(events, teamId) {
 }
 
 // ─── Section wrappers ────────────────────────────────────────────────
-function Sect(_ref11) {
-  let title = _ref11.title,
-    open = _ref11.open,
-    onToggle = _ref11.onToggle;
+function Sect({
+  title,
+  open,
+  onToggle
+}) {
   return /*#__PURE__*/React.createElement("button", {
     onClick: onToggle,
     style: {
@@ -3193,8 +3254,9 @@ function Sect(_ref11) {
     }
   }, open ? "▼" : "▶"));
 }
-function SubHdr(_ref12) {
-  let label = _ref12.label;
+function SubHdr({
+  label
+}) {
   return /*#__PURE__*/React.createElement("div", {
     style: {
       padding: "10px 14px 6px",
@@ -3208,9 +3270,10 @@ function SubHdr(_ref12) {
     }
   }, label);
 }
-function TeamHdr(_ref13) {
-  let name = _ref13.name,
-    accent = _ref13.accent;
+function TeamHdr({
+  name,
+  accent
+}) {
   return /*#__PURE__*/React.createElement("div", {
     style: {
       padding: "7px 14px",
@@ -3270,12 +3333,13 @@ function ColHdr() {
 }
 
 // Data row: label + 7 values, with optional team accent + sub-indent
-function DR(_ref14) {
-  let label = _ref14.label,
-    vals = _ref14.vals,
-    accent = _ref14.accent,
-    sub = _ref14.sub,
-    bold = _ref14.bold;
+function DR({
+  label,
+  vals,
+  accent,
+  sub,
+  bold
+}) {
   return /*#__PURE__*/React.createElement("div", {
     style: {
       display: "grid",
@@ -3304,15 +3368,16 @@ function DR(_ref14) {
     }
   }, v === 0 || v === "0" || v === "0%" ? "–" : v)));
 }
-function Pair(_ref15) {
-  let label = _ref15.label,
-    hVals = _ref15.hVals,
-    aVals = _ref15.aVals,
-    hN = _ref15.hN,
-    aN = _ref15.aN,
-    showH = _ref15.showH,
-    showA = _ref15.showA,
-    bold = _ref15.bold;
+function Pair({
+  label,
+  hVals,
+  aVals,
+  hN,
+  aN,
+  showH,
+  showA,
+  bold
+}) {
   return /*#__PURE__*/React.createElement(React.Fragment, null, label && /*#__PURE__*/React.createElement("div", {
     style: {
       padding: "7px 14px 2px",
@@ -3336,8 +3401,9 @@ function Pair(_ref15) {
     bold: bold
   }));
 }
-function Note(_ref16) {
-  let text = _ref16.text;
+function Note({
+  text
+}) {
   return /*#__PURE__*/React.createElement("div", {
     style: {
       padding: "5px 14px",
@@ -3352,16 +3418,14 @@ function Note(_ref16) {
 }
 
 // ─── Main DetailedStatsTab ───────────────────────────────────────────
-function DetailedStatsTab(_ref17) {
-  let events = _ref17.events,
-    homeTeam = _ref17.homeTeam,
-    awayTeam = _ref17.awayTeam;
-  const _useState = useState("both"),
-    teamFilter = _useState[0],
-    setTeamFilter = _useState[1];
-  const _useState2 = useState({}),
-    collapsed = _useState2[0],
-    setCollapsed = _useState2[1];
+function DetailedStatsTab({
+  events,
+  homeTeam,
+  awayTeam,
+  homeAttacksLeft
+}) {
+  const [teamFilter, setTeamFilter] = useState("both");
+  const [collapsed, setCollapsed] = useState({});
   const showH = teamFilter !== "away";
   const showA = teamFilter !== "home";
   const hN = homeTeam.short;
@@ -3377,8 +3441,8 @@ function DetailedStatsTab(_ref17) {
     setCollapsed(next);
   };
   const expandAll = () => setCollapsed({});
-  const hSt = useMemo(() => quartAggregate(events, "home"), [events]);
-  const aSt = useMemo(() => quartAggregate(events, "away"), [events]);
+  const hSt = useMemo(() => quartAggregate(events, "home", homeAttacksLeft), [events, homeAttacksLeft]);
+  const aSt = useMemo(() => quartAggregate(events, "away", homeAttacksLeft), [events, homeAttacksLeft]);
 
   // Derived buckets
   const hShotR = pctBucket(hSt.shotsQ, hSt.possQ);
@@ -3966,18 +4030,12 @@ function DetailedStatsTab(_ref17) {
     aN: aN,
     showH: showH,
     showA: showA
-  }), [showH && ["home", homeTeam.name, "var(--home)", hSt], showA && ["away", awayTeam.name, "var(--away)", aSt]].filter(Boolean).map(_ref18 => {
-    let tid = _ref18[0],
-      nm = _ref18[1],
-      col = _ref18[2],
-      st = _ref18[3];
-    return /*#__PURE__*/React.createElement(XPTypeBreakdown, {
-      key: tid,
-      name: nm,
-      accent: col,
-      shots: st.shots
-    });
-  })), /*#__PURE__*/React.createElement(Sect, {
+  }), [showH && ["home", homeTeam.name, "var(--home)", hSt], showA && ["away", awayTeam.name, "var(--away)", aSt]].filter(Boolean).map(([tid, nm, col, st]) => /*#__PURE__*/React.createElement(XPTypeBreakdown, {
+    key: tid,
+    name: nm,
+    accent: col,
+    shots: st.shots
+  }))), /*#__PURE__*/React.createElement(Sect, {
     title: "Attack Speed",
     open: !isCol("Attack Speed"),
     onToggle: () => toggleSection("Attack Speed")
@@ -4035,11 +4093,12 @@ function DetailedStatsTab(_ref17) {
     toggleSection: toggleSection
   }));
 }
-function KPISummary(_ref19) {
-  let label = _ref19.label,
-    value = _ref19.value,
-    sub = _ref19.sub,
-    accent = _ref19.accent;
+function KPISummary({
+  label,
+  value,
+  sub,
+  accent
+}) {
   return /*#__PURE__*/React.createElement("div", {
     className: "kpi"
   }, /*#__PURE__*/React.createElement("div", {
@@ -4056,15 +4115,13 @@ function KPISummary(_ref19) {
 }
 
 // ─── xP Type Breakdown sub-table ─────────────────────────────────────
-function XPTypeBreakdown(_ref20) {
-  let name = _ref20.name,
-    accent = _ref20.accent,
-    shots = _ref20.shots;
+function XPTypeBreakdown({
+  name,
+  accent,
+  shots
+}) {
   // Group by source × isGoalAttempt
-  const groups = [["play", false, "Open play point"], ["play", true, "Open play goal"], ["2play", false, "2-pt from play"], ["free", false, "Free (point)"], ["free", true, "Free (goal)"], ["2free", false, "2-pt free"], ["mark", false, "Mark"], ["45m", false, "From 45"], ["penalty", true, "Penalty"]].map(_ref21 => {
-    let src = _ref21[0],
-      isGA = _ref21[1],
-      label = _ref21[2];
+  const groups = [["play", false, "Open play point"], ["play", true, "Open play goal"], ["2play", false, "2-pt from play"], ["free", false, "Free (point)"], ["free", true, "Free (goal)"], ["2free", false, "2-pt free"], ["mark", false, "Mark"], ["45m", false, "From 45"], ["penalty", true, "Penalty"]].map(([src, isGA, label]) => {
     const sh = shots.filter(s => {
       var _SHOT_OUTCOMES$find2;
       const goalAttempt = ((_SHOT_OUTCOMES$find2 = SHOT_OUTCOMES.find(o => o.id === s.outcome)) == null ? void 0 : _SHOT_OUTCOMES$find2.goalAttempt) || false;
@@ -4218,15 +4275,16 @@ function XPTypeBreakdown(_ref20) {
 }
 
 // ─── Attack Speed row helper ─────────────────────────────────────────
-function AttackSpeedRow(_ref22) {
-  let title = _ref22.title,
-    hSt = _ref22.hSt,
-    aSt = _ref22.aSt,
-    origin = _ref22.origin,
-    hN = _ref22.hN,
-    aN = _ref22.aN,
-    showH = _ref22.showH,
-    showA = _ref22.showA;
+function AttackSpeedRow({
+  title,
+  hSt,
+  aSt,
+  origin,
+  hN,
+  aN,
+  showH,
+  showA
+}) {
   const computeSpeed = st => {
     const out = {
       fast: {
@@ -4295,110 +4353,106 @@ function AttackSpeedRow(_ref22) {
       color: "var(--t3)",
       textAlign: "center"
     }
-  }, h))), [showH && [hN, "var(--home)", hD], showA && [aN, "var(--away)", aD]].filter(Boolean).flatMap(_ref23 => {
-    let nm = _ref23[0],
-      col = _ref23[1],
-      d = _ref23[2];
-    return [/*#__PURE__*/React.createElement("div", {
-      key: nm + "f",
-      style: {
-        display: "grid",
-        gridTemplateColumns: "1fr 40px 40px 50px 40px",
-        padding: "6px 12px",
-        borderBottom: "1px solid var(--line-soft)",
-        alignItems: "center"
-      }
-    }, /*#__PURE__*/React.createElement("span", {
-      style: {
-        fontFamily: "var(--fui)",
-        fontSize: 11,
-        color: col,
-        fontWeight: 600
-      }
-    }, nm, " <40s"), /*#__PURE__*/React.createElement("span", {
-      style: {
-        fontFamily: "var(--fm)",
-        fontSize: 11,
-        textAlign: "center"
-      }
-    }, d.fast.sh || "–"), /*#__PURE__*/React.createElement("span", {
-      style: {
-        fontFamily: "var(--fm)",
-        fontSize: 11,
-        textAlign: "center"
-      }
-    }, d.fast.pts || "–"), /*#__PURE__*/React.createElement("span", {
-      style: {
-        fontFamily: "var(--fm)",
-        fontSize: 11,
-        textAlign: "center",
-        color: "var(--t2)"
-      }
-    }, d.fast.xp.toFixed(2)), /*#__PURE__*/React.createElement("span", {
-      style: {
-        fontFamily: "var(--fm)",
-        fontSize: 11,
-        textAlign: "center",
-        color: col,
-        fontWeight: 700
-      }
-    }, d.fast.pps)), /*#__PURE__*/React.createElement("div", {
-      key: nm + "s",
-      style: {
-        display: "grid",
-        gridTemplateColumns: "1fr 40px 40px 50px 40px",
-        padding: "6px 12px",
-        borderBottom: "1px solid var(--line-soft)",
-        alignItems: "center",
-        opacity: 0.65
-      }
-    }, /*#__PURE__*/React.createElement("span", {
-      style: {
-        fontFamily: "var(--fui)",
-        fontSize: 11,
-        color: col,
-        fontWeight: 600
-      }
-    }, nm, " \u226540s"), /*#__PURE__*/React.createElement("span", {
-      style: {
-        fontFamily: "var(--fm)",
-        fontSize: 11,
-        textAlign: "center"
-      }
-    }, d.slow.sh || "–"), /*#__PURE__*/React.createElement("span", {
-      style: {
-        fontFamily: "var(--fm)",
-        fontSize: 11,
-        textAlign: "center"
-      }
-    }, d.slow.pts || "–"), /*#__PURE__*/React.createElement("span", {
-      style: {
-        fontFamily: "var(--fm)",
-        fontSize: 11,
-        textAlign: "center",
-        color: "var(--t2)"
-      }
-    }, d.slow.xp.toFixed(2)), /*#__PURE__*/React.createElement("span", {
-      style: {
-        fontFamily: "var(--fm)",
-        fontSize: 11,
-        textAlign: "center",
-        color: col,
-        fontWeight: 700
-      }
-    }, d.slow.pps))];
-  }));
+  }, h))), [showH && [hN, "var(--home)", hD], showA && [aN, "var(--away)", aD]].filter(Boolean).flatMap(([nm, col, d]) => [/*#__PURE__*/React.createElement("div", {
+    key: nm + "f",
+    style: {
+      display: "grid",
+      gridTemplateColumns: "1fr 40px 40px 50px 40px",
+      padding: "6px 12px",
+      borderBottom: "1px solid var(--line-soft)",
+      alignItems: "center"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontFamily: "var(--fui)",
+      fontSize: 11,
+      color: col,
+      fontWeight: 600
+    }
+  }, nm, " <40s"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontFamily: "var(--fm)",
+      fontSize: 11,
+      textAlign: "center"
+    }
+  }, d.fast.sh || "–"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontFamily: "var(--fm)",
+      fontSize: 11,
+      textAlign: "center"
+    }
+  }, d.fast.pts || "–"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontFamily: "var(--fm)",
+      fontSize: 11,
+      textAlign: "center",
+      color: "var(--t2)"
+    }
+  }, d.fast.xp.toFixed(2)), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontFamily: "var(--fm)",
+      fontSize: 11,
+      textAlign: "center",
+      color: col,
+      fontWeight: 700
+    }
+  }, d.fast.pps)), /*#__PURE__*/React.createElement("div", {
+    key: nm + "s",
+    style: {
+      display: "grid",
+      gridTemplateColumns: "1fr 40px 40px 50px 40px",
+      padding: "6px 12px",
+      borderBottom: "1px solid var(--line-soft)",
+      alignItems: "center",
+      opacity: 0.65
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontFamily: "var(--fui)",
+      fontSize: 11,
+      color: col,
+      fontWeight: 600
+    }
+  }, nm, " \u226540s"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontFamily: "var(--fm)",
+      fontSize: 11,
+      textAlign: "center"
+    }
+  }, d.slow.sh || "–"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontFamily: "var(--fm)",
+      fontSize: 11,
+      textAlign: "center"
+    }
+  }, d.slow.pts || "–"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontFamily: "var(--fm)",
+      fontSize: 11,
+      textAlign: "center",
+      color: "var(--t2)"
+    }
+  }, d.slow.xp.toFixed(2)), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontFamily: "var(--fm)",
+      fontSize: 11,
+      textAlign: "center",
+      color: col,
+      fontWeight: 700
+    }
+  }, d.slow.pps))]));
 }
 
 // ─── Defensive Zones component ───────────────────────────────────────
-function DefensiveZones(_ref24) {
-  let events = _ref24.events,
-    homeTeam = _ref24.homeTeam,
-    awayTeam = _ref24.awayTeam,
-    hSt = _ref24.hSt,
-    aSt = _ref24.aSt,
-    showH = _ref24.showH,
-    showA = _ref24.showA;
+function DefensiveZones({
+  events,
+  homeTeam,
+  awayTeam,
+  hSt,
+  aSt,
+  showH,
+  showA
+}) {
   const teams = [];
   if (showH) teams.push({
     tid: "home",
@@ -4419,11 +4473,12 @@ function DefensiveZones(_ref24) {
       gridTemplateColumns: teams.length === 2 ? "1fr 1fr" : "1fr",
       gap: 14
     }
-  }, teams.map(_ref25 => {
-    let tid = _ref25.tid,
-      nm = _ref25.nm,
-      accent = _ref25.accent,
-      st = _ref25.st;
+  }, teams.map(({
+    tid,
+    nm,
+    accent,
+    st
+  }) => {
     const opp = tid === "home" ? "away" : "home";
     const tos = events.filter(e => e.type === "turnover" && e.loc && (e.team === tid && e.result === "won" || e.team === opp && e.result === "lost"));
     const zones = {
@@ -4455,50 +4510,45 @@ function DefensiveZones(_ref24) {
         letterSpacing: "0.1em",
         color: accent
       }
-    }, nm), [["def", "Own half (defensive)", "var(--away)"], ["mid", "Midfield", "var(--gold)"], ["atk", "Atk half", "var(--score)"]].map(_ref26 => {
-      let k = _ref26[0],
-        l = _ref26[1],
-        c = _ref26[2];
-      return /*#__PURE__*/React.createElement("div", {
-        key: k,
-        style: {
-          display: "grid",
-          gridTemplateColumns: "1fr 50px 50px 50px",
-          padding: "8px 12px",
-          borderBottom: "1px solid var(--line-soft)",
-          alignItems: "center"
-        }
-      }, /*#__PURE__*/React.createElement("span", {
-        style: {
-          fontFamily: "var(--fui)",
-          fontSize: 11,
-          color: c,
-          fontWeight: 600
-        }
-      }, l), /*#__PURE__*/React.createElement("span", {
-        style: {
-          fontFamily: "var(--fm)",
-          fontSize: 14,
-          textAlign: "center",
-          color: accent,
-          fontWeight: 700
-        }
-      }, zones[k].length || "–"), /*#__PURE__*/React.createElement("span", {
-        style: {
-          fontFamily: "var(--fm)",
-          fontSize: 11,
-          textAlign: "center",
-          color: "var(--t3)"
-        }
-      }, "T/O"), /*#__PURE__*/React.createElement("span", {
-        style: {
-          fontFamily: "var(--fm)",
-          fontSize: 11,
-          textAlign: "center",
-          color: "var(--t3)"
-        }
-      }, "\u2014"));
-    }));
+    }, nm), [["def", "Own half (defensive)", "var(--away)"], ["mid", "Midfield", "var(--gold)"], ["atk", "Atk half", "var(--score)"]].map(([k, l, c]) => /*#__PURE__*/React.createElement("div", {
+      key: k,
+      style: {
+        display: "grid",
+        gridTemplateColumns: "1fr 50px 50px 50px",
+        padding: "8px 12px",
+        borderBottom: "1px solid var(--line-soft)",
+        alignItems: "center"
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontFamily: "var(--fui)",
+        fontSize: 11,
+        color: c,
+        fontWeight: 600
+      }
+    }, l), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontFamily: "var(--fm)",
+        fontSize: 14,
+        textAlign: "center",
+        color: accent,
+        fontWeight: 700
+      }
+    }, zones[k].length || "–"), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontFamily: "var(--fm)",
+        fontSize: 11,
+        textAlign: "center",
+        color: "var(--t3)"
+      }
+    }, "T/O"), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontFamily: "var(--fm)",
+        fontSize: 11,
+        textAlign: "center",
+        color: "var(--t3)"
+      }
+    }, "\u2014"))));
   }));
 }
 
@@ -4508,18 +4558,19 @@ function DefensiveZones(_ref24) {
 
 // ─── GAA Tracker · Detailed Sections B (sections 7-14) ───────────────
 
-function DetailedSectionsB(_ref27) {
-  let events = _ref27.events,
-    homeTeam = _ref27.homeTeam,
-    awayTeam = _ref27.awayTeam,
-    hSt = _ref27.hSt,
-    aSt = _ref27.aSt,
-    hN = _ref27.hN,
-    aN = _ref27.aN,
-    showH = _ref27.showH,
-    showA = _ref27.showA,
-    isCol = _ref27.isCol,
-    toggleSection = _ref27.toggleSection;
+function DetailedSectionsB({
+  events,
+  homeTeam,
+  awayTeam,
+  hSt,
+  aSt,
+  hN,
+  aN,
+  showH,
+  showA,
+  isCol,
+  toggleSection
+}) {
   return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(Sect, {
     title: "Shooting Clock",
     open: !isCol("Shooting Clock"),
@@ -4676,13 +4727,14 @@ function DetailedSectionsB(_ref27) {
 }
 
 // ─── Shooting Clock (12 sectors × avg seconds) ───────────────────────
-function ShootingClock(_ref28) {
-  let hSt = _ref28.hSt,
-    aSt = _ref28.aSt,
-    homeTeam = _ref28.homeTeam,
-    awayTeam = _ref28.awayTeam,
-    showH = _ref28.showH,
-    showA = _ref28.showA;
+function ShootingClock({
+  hSt,
+  aSt,
+  homeTeam,
+  awayTeam,
+  showH,
+  showA
+}) {
   const compute = (st, tid) => {
     const sm = {};
     st.poss.forEach(p => {
@@ -4729,81 +4781,81 @@ function ShootingClock(_ref28) {
       gridTemplateColumns: teams.length === 2 ? "1fr 1fr" : "1fr",
       gap: 14
     }
-  }, teams.map(_ref29 => {
-    let tid = _ref29.tid,
-      nm = _ref29.nm,
-      accent = _ref29.accent,
-      sm = _ref29.sm;
-    return /*#__PURE__*/React.createElement("div", {
-      key: tid,
-      style: {
-        background: "var(--bg-2)",
-        border: "1px solid var(--line-soft)",
-        borderRadius: 8,
-        overflow: "hidden"
-      }
-    }, /*#__PURE__*/React.createElement("div", {
-      style: {
-        padding: "7px 12px",
-        background: "var(--bg-3)",
-        borderBottom: "1px solid var(--line-soft)",
-        fontFamily: "var(--fui)",
-        fontSize: 10,
-        fontWeight: 700,
-        letterSpacing: "0.1em",
-        color: accent
-      }
-    }, nm), /*#__PURE__*/React.createElement("div", {
-      style: {
-        display: "grid",
-        gridTemplateColumns: "repeat(4,1fr)",
-        gap: 6,
-        padding: 10
-      }
-    }, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(s => /*#__PURE__*/React.createElement("div", {
-      key: s,
-      style: {
-        background: "var(--bg-3)",
-        borderRadius: 6,
-        padding: "8px 6px",
-        textAlign: "center"
-      }
-    }, /*#__PURE__*/React.createElement("div", {
-      style: {
-        fontFamily: "var(--fm)",
-        fontSize: 9,
-        color: "var(--t3)"
-      }
-    }, "S", s), sm[s] ? /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
-      style: {
-        fontFamily: "var(--fd)",
-        fontSize: 18,
-        fontWeight: 600,
-        color: accent
-      }
-    }, Math.round(sm[s].tot / sm[s].n), "s"), /*#__PURE__*/React.createElement("div", {
-      style: {
-        fontFamily: "var(--fm)",
-        fontSize: 9,
-        color: "var(--t3)"
-      }
-    }, "(", sm[s].n, ")")) : /*#__PURE__*/React.createElement("div", {
-      style: {
-        fontFamily: "var(--fm)",
-        fontSize: 14,
-        color: "var(--t4)"
-      }
-    }, "\u2013")))));
-  }));
+  }, teams.map(({
+    tid,
+    nm,
+    accent,
+    sm
+  }) => /*#__PURE__*/React.createElement("div", {
+    key: tid,
+    style: {
+      background: "var(--bg-2)",
+      border: "1px solid var(--line-soft)",
+      borderRadius: 8,
+      overflow: "hidden"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: "7px 12px",
+      background: "var(--bg-3)",
+      borderBottom: "1px solid var(--line-soft)",
+      fontFamily: "var(--fui)",
+      fontSize: 10,
+      fontWeight: 700,
+      letterSpacing: "0.1em",
+      color: accent
+    }
+  }, nm), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "repeat(4,1fr)",
+      gap: 6,
+      padding: 10
+    }
+  }, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(s => /*#__PURE__*/React.createElement("div", {
+    key: s,
+    style: {
+      background: "var(--bg-3)",
+      borderRadius: 6,
+      padding: "8px 6px",
+      textAlign: "center"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontFamily: "var(--fm)",
+      fontSize: 9,
+      color: "var(--t3)"
+    }
+  }, "S", s), sm[s] ? /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontFamily: "var(--fd)",
+      fontSize: 18,
+      fontWeight: 600,
+      color: accent
+    }
+  }, Math.round(sm[s].tot / sm[s].n), "s"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontFamily: "var(--fm)",
+      fontSize: 9,
+      color: "var(--t3)"
+    }
+  }, "(", sm[s].n, ")")) : /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontFamily: "var(--fm)",
+      fontSize: 14,
+      color: "var(--t4)"
+    }
+  }, "\u2013")))))));
 }
 
 // ─── Consecutive Scoreless ───────────────────────────────────────────
-function ScorelessCard(_ref30) {
-  let events = _ref30.events,
-    homeTeam = _ref30.homeTeam,
-    awayTeam = _ref30.awayTeam,
-    showH = _ref30.showH,
-    showA = _ref30.showA;
+function ScorelessCard({
+  events,
+  homeTeam,
+  awayTeam,
+  showH,
+  showA
+}) {
   const poss = buildPossessions(events);
   const teams = [];
   if (showH) teams.push({
@@ -4824,76 +4876,76 @@ function ScorelessCard(_ref30) {
       gridTemplateColumns: teams.length === 2 ? "1fr 1fr" : "1fr",
       gap: 14
     }
-  }, teams.map(_ref31 => {
-    let tid = _ref31.tid,
-      nm = _ref31.nm,
-      accent = _ref31.accent,
-      d = _ref31.d;
-    return /*#__PURE__*/React.createElement("div", {
-      key: tid,
-      style: {
-        padding: 14,
-        background: "var(--bg-2)",
-        border: "1px solid var(--line-soft)",
-        borderRadius: 8
-      }
-    }, /*#__PURE__*/React.createElement("div", {
-      style: {
-        fontFamily: "var(--fui)",
-        fontSize: 11,
-        fontWeight: 700,
-        letterSpacing: "0.14em",
-        color: accent,
-        marginBottom: 10
-      }
-    }, nm), /*#__PURE__*/React.createElement("div", {
-      style: {
-        display: "grid",
-        gridTemplateColumns: "1fr 1fr",
-        gap: 14
-      }
-    }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
-      className: "kpi-l"
-    }, "Max run"), /*#__PURE__*/React.createElement("div", {
-      className: "kpi-v",
-      style: {
-        color: d.max >= 6 ? "var(--away)" : d.max >= 3 ? "var(--gold)" : accent
-      }
-    }, d.max), /*#__PURE__*/React.createElement("div", {
-      className: "kpi-s"
-    }, "in a row this match")), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
-      className: "kpi-l"
-    }, "Active now"), /*#__PURE__*/React.createElement("div", {
-      className: "kpi-v",
-      style: {
-        color: d.active >= 3 ? "var(--away)" : "var(--t1)"
-      }
-    }, d.active), /*#__PURE__*/React.createElement("div", {
-      className: "kpi-s"
-    }, d.total, " possessions"))), d.active >= 3 && /*#__PURE__*/React.createElement("div", {
-      style: {
-        marginTop: 10,
-        padding: "7px 11px",
-        background: "var(--away-d)",
-        border: "1px solid var(--away)",
-        color: "var(--away)",
-        borderRadius: 6,
-        fontSize: 11,
-        fontFamily: "var(--fui)",
-        fontWeight: 700,
-        letterSpacing: "0.06em"
-      }
-    }, "\u26A0 ", d.active, " scoreless possessions in a row"));
-  }));
+  }, teams.map(({
+    tid,
+    nm,
+    accent,
+    d
+  }) => /*#__PURE__*/React.createElement("div", {
+    key: tid,
+    style: {
+      padding: 14,
+      background: "var(--bg-2)",
+      border: "1px solid var(--line-soft)",
+      borderRadius: 8
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontFamily: "var(--fui)",
+      fontSize: 11,
+      fontWeight: 700,
+      letterSpacing: "0.14em",
+      color: accent,
+      marginBottom: 10
+    }
+  }, nm), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "1fr 1fr",
+      gap: 14
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    className: "kpi-l"
+  }, "Max run"), /*#__PURE__*/React.createElement("div", {
+    className: "kpi-v",
+    style: {
+      color: d.max >= 6 ? "var(--away)" : d.max >= 3 ? "var(--gold)" : accent
+    }
+  }, d.max), /*#__PURE__*/React.createElement("div", {
+    className: "kpi-s"
+  }, "in a row this match")), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    className: "kpi-l"
+  }, "Active now"), /*#__PURE__*/React.createElement("div", {
+    className: "kpi-v",
+    style: {
+      color: d.active >= 3 ? "var(--away)" : "var(--t1)"
+    }
+  }, d.active), /*#__PURE__*/React.createElement("div", {
+    className: "kpi-s"
+  }, d.total, " possessions"))), d.active >= 3 && /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 10,
+      padding: "7px 11px",
+      background: "var(--away-d)",
+      border: "1px solid var(--away)",
+      color: "var(--away)",
+      borderRadius: 6,
+      fontSize: 11,
+      fontFamily: "var(--fui)",
+      fontWeight: 700,
+      letterSpacing: "0.06em"
+    }
+  }, "\u26A0 ", d.active, " scoreless possessions in a row"))));
 }
 
 // ─── SQI Table ───────────────────────────────────────────────────────
-function SQITable(_ref32) {
-  let events = _ref32.events,
-    hN = _ref32.hN,
-    aN = _ref32.aN,
-    showH = _ref32.showH,
-    showA = _ref32.showA;
+function SQITable({
+  events,
+  hN,
+  aN,
+  showH,
+  showA
+}) {
   const sqi = sh => sh.length === 0 ? "–" : (sh.reduce((s, e) => s + shotXP(e), 0) / sh.length).toFixed(3);
   const poss = buildPossessions(events);
   const shotOrigin = {};
@@ -4931,47 +4983,43 @@ function SQITable(_ref32) {
       textAlign: "right",
       color: "var(--t4)"
     }
-  }, aN, " n"))), /*#__PURE__*/React.createElement("tbody", null, segs.map(_ref33 => {
-    let l = _ref33[0],
-      hArr = _ref33[1],
-      aArr = _ref33[2];
-    return /*#__PURE__*/React.createElement("tr", {
-      key: l
-    }, /*#__PURE__*/React.createElement("td", {
-      className: "player"
-    }, l), showH && /*#__PURE__*/React.createElement("td", {
-      className: "num",
-      style: {
-        color: "var(--home)",
-        fontWeight: 600
-      }
-    }, sqi(hArr)), showA && /*#__PURE__*/React.createElement("td", {
-      className: "num",
-      style: {
-        color: "var(--away)",
-        fontWeight: 600
-      }
-    }, sqi(aArr)), showH && /*#__PURE__*/React.createElement("td", {
-      className: "num",
-      style: {
-        color: "var(--t3)"
-      }
-    }, hArr.length), showA && /*#__PURE__*/React.createElement("td", {
-      className: "num",
-      style: {
-        color: "var(--t3)"
-      }
-    }, aArr.length));
-  }))));
+  }, aN, " n"))), /*#__PURE__*/React.createElement("tbody", null, segs.map(([l, hArr, aArr]) => /*#__PURE__*/React.createElement("tr", {
+    key: l
+  }, /*#__PURE__*/React.createElement("td", {
+    className: "player"
+  }, l), showH && /*#__PURE__*/React.createElement("td", {
+    className: "num",
+    style: {
+      color: "var(--home)",
+      fontWeight: 600
+    }
+  }, sqi(hArr)), showA && /*#__PURE__*/React.createElement("td", {
+    className: "num",
+    style: {
+      color: "var(--away)",
+      fontWeight: 600
+    }
+  }, sqi(aArr)), showH && /*#__PURE__*/React.createElement("td", {
+    className: "num",
+    style: {
+      color: "var(--t3)"
+    }
+  }, hArr.length), showA && /*#__PURE__*/React.createElement("td", {
+    className: "num",
+    style: {
+      color: "var(--t3)"
+    }
+  }, aArr.length))))));
 }
 
 // ─── Scoring Runs (sections list + longest) ──────────────────────────
-function ScoringRunsList(_ref34) {
-  let events = _ref34.events,
-    homeTeam = _ref34.homeTeam,
-    awayTeam = _ref34.awayTeam,
-    showH = _ref34.showH,
-    showA = _ref34.showA;
+function ScoringRunsList({
+  events,
+  homeTeam,
+  awayTeam,
+  showH,
+  showA
+}) {
   const allRuns = scoringRuns(events);
   const runs = allRuns.filter(r => showH && r.team === "home" || showA && r.team === "away");
   return /*#__PURE__*/React.createElement("div", null, runs.length === 0 && /*#__PURE__*/React.createElement("div", {
@@ -5103,14 +5151,15 @@ function ScoringRunsList(_ref34) {
 }
 
 // ─── Half vs Half ────────────────────────────────────────────────────
-function HalfVsHalfTable(_ref35) {
-  let events = _ref35.events,
-    homeTeam = _ref35.homeTeam,
-    awayTeam = _ref35.awayTeam,
-    hN = _ref35.hN,
-    aN = _ref35.aN,
-    showH = _ref35.showH,
-    showA = _ref35.showA;
+function HalfVsHalfTable({
+  events,
+  homeTeam,
+  awayTeam,
+  hN,
+  aN,
+  showH,
+  showA
+}) {
   const poss = buildPossessions(events);
   const sqi = sh => sh.length === 0 ? "–" : (sh.reduce((s, e) => s + shotXP(e), 0) / sh.length).toFixed(3);
   const halfStats = (tid, isH1) => {
@@ -5260,14 +5309,15 @@ function HalfVsHalfTable(_ref35) {
 }
 
 // ─── Productivity by Origin ──────────────────────────────────────────
-function ProductivityByOrigin(_ref36) {
-  let events = _ref36.events,
-    hSt = _ref36.hSt,
-    aSt = _ref36.aSt,
-    hN = _ref36.hN,
-    aN = _ref36.aN,
-    showH = _ref36.showH,
-    showA = _ref36.showA;
+function ProductivityByOrigin({
+  events,
+  hSt,
+  aSt,
+  hN,
+  aN,
+  showH,
+  showA
+}) {
   const compute = st => {
     const fromKO = st.poss.filter(p => p.origin === "kickout");
     const fromKOOwn = fromKO.filter(p => {
@@ -5309,108 +5359,100 @@ function ProductivityByOrigin(_ref36) {
       flexDirection: "column",
       gap: 12
     }
-  }, labels.map(_ref37 => {
-    let k = _ref37[0],
-      l = _ref37[1];
-    return /*#__PURE__*/React.createElement("div", {
-      key: k,
-      style: {
-        background: "var(--bg-2)",
-        border: "1px solid var(--line-soft)",
-        borderRadius: 8,
-        overflow: "hidden"
-      }
-    }, /*#__PURE__*/React.createElement("div", {
-      style: {
-        padding: "7px 12px",
-        background: "var(--bg-3)",
-        borderBottom: "1px solid var(--line-soft)",
-        fontFamily: "var(--fui)",
-        fontSize: 10,
-        fontWeight: 700,
-        letterSpacing: "0.1em",
-        color: "var(--gold)"
-      }
-    }, l), /*#__PURE__*/React.createElement("div", {
-      style: {
-        display: "grid",
-        gridTemplateColumns: "1fr 50px 50px 60px 70px 60px",
-        padding: "5px 12px",
-        borderBottom: "1px solid var(--line-soft)"
-      }
-    }, ["", "Poss", "Shots", "Scores", "xP/Sh", "PPS"].map(h => /*#__PURE__*/React.createElement("span", {
-      key: h,
-      style: {
-        fontFamily: "var(--fui)",
-        fontSize: 9,
-        color: "var(--t3)",
-        textAlign: h === "" ? "left" : "center"
-      }
-    }, h))), [showH && [hN, "var(--home)", hD[k]], showA && [aN, "var(--away)", aD[k]]].filter(Boolean).map(_ref38 => {
-      let nm = _ref38[0],
-        col = _ref38[1],
-        d = _ref38[2];
-      return /*#__PURE__*/React.createElement("div", {
-        key: nm,
-        style: {
-          display: "grid",
-          gridTemplateColumns: "1fr 50px 50px 60px 70px 60px",
-          padding: "8px 12px",
-          borderBottom: "1px solid var(--line-soft)",
-          alignItems: "center"
-        }
-      }, /*#__PURE__*/React.createElement("span", {
-        style: {
-          fontFamily: "var(--fui)",
-          fontSize: 11,
-          color: col,
-          fontWeight: 600
-        }
-      }, nm), /*#__PURE__*/React.createElement("span", {
-        style: {
-          fontFamily: "var(--fm)",
-          fontSize: 11,
-          textAlign: "center"
-        }
-      }, d.poss), /*#__PURE__*/React.createElement("span", {
-        style: {
-          fontFamily: "var(--fm)",
-          fontSize: 11,
-          textAlign: "center"
-        }
-      }, d.shots || "–"), /*#__PURE__*/React.createElement("span", {
-        style: {
-          fontFamily: "var(--fm)",
-          fontSize: 11,
-          textAlign: "center"
-        }
-      }, d.scores || "–"), /*#__PURE__*/React.createElement("span", {
-        style: {
-          fontFamily: "var(--fm)",
-          fontSize: 11,
-          textAlign: "center",
-          color: "var(--t2)"
-        }
-      }, d.xpPerSh), /*#__PURE__*/React.createElement("span", {
-        style: {
-          fontFamily: "var(--fm)",
-          fontSize: 13,
-          textAlign: "center",
-          color: col,
-          fontWeight: 700
-        }
-      }, d.pps));
-    }));
-  }));
+  }, labels.map(([k, l]) => /*#__PURE__*/React.createElement("div", {
+    key: k,
+    style: {
+      background: "var(--bg-2)",
+      border: "1px solid var(--line-soft)",
+      borderRadius: 8,
+      overflow: "hidden"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: "7px 12px",
+      background: "var(--bg-3)",
+      borderBottom: "1px solid var(--line-soft)",
+      fontFamily: "var(--fui)",
+      fontSize: 10,
+      fontWeight: 700,
+      letterSpacing: "0.1em",
+      color: "var(--gold)"
+    }
+  }, l), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "1fr 50px 50px 60px 70px 60px",
+      padding: "5px 12px",
+      borderBottom: "1px solid var(--line-soft)"
+    }
+  }, ["", "Poss", "Shots", "Scores", "xP/Sh", "PPS"].map(h => /*#__PURE__*/React.createElement("span", {
+    key: h,
+    style: {
+      fontFamily: "var(--fui)",
+      fontSize: 9,
+      color: "var(--t3)",
+      textAlign: h === "" ? "left" : "center"
+    }
+  }, h))), [showH && [hN, "var(--home)", hD[k]], showA && [aN, "var(--away)", aD[k]]].filter(Boolean).map(([nm, col, d]) => /*#__PURE__*/React.createElement("div", {
+    key: nm,
+    style: {
+      display: "grid",
+      gridTemplateColumns: "1fr 50px 50px 60px 70px 60px",
+      padding: "8px 12px",
+      borderBottom: "1px solid var(--line-soft)",
+      alignItems: "center"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontFamily: "var(--fui)",
+      fontSize: 11,
+      color: col,
+      fontWeight: 600
+    }
+  }, nm), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontFamily: "var(--fm)",
+      fontSize: 11,
+      textAlign: "center"
+    }
+  }, d.poss), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontFamily: "var(--fm)",
+      fontSize: 11,
+      textAlign: "center"
+    }
+  }, d.shots || "–"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontFamily: "var(--fm)",
+      fontSize: 11,
+      textAlign: "center"
+    }
+  }, d.scores || "–"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontFamily: "var(--fm)",
+      fontSize: 11,
+      textAlign: "center",
+      color: "var(--t2)"
+    }
+  }, d.xpPerSh), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontFamily: "var(--fm)",
+      fontSize: 13,
+      textAlign: "center",
+      color: col,
+      fontWeight: 700
+    }
+  }, d.pps))))));
 }
 
 // ─── Kickout Targets ─────────────────────────────────────────────────
-function KOTargets(_ref39) {
-  let events = _ref39.events,
-    homeTeam = _ref39.homeTeam,
-    awayTeam = _ref39.awayTeam,
-    showH = _ref39.showH,
-    showA = _ref39.showA;
+function KOTargets({
+  events,
+  homeTeam,
+  awayTeam,
+  showH,
+  showA
+}) {
   const compute = (tid, teamObj) => {
     const kos = events.filter(e => e.type === "kickout" && e.team === tid);
     const targets = {};
@@ -5452,73 +5494,73 @@ function KOTargets(_ref39) {
       flexDirection: "column",
       gap: 14
     }
-  }, teams.map(_ref40 => {
-    let tid = _ref40.tid,
-      nm = _ref40.nm,
-      accent = _ref40.accent,
-      rows = _ref40.rows;
-    return /*#__PURE__*/React.createElement("div", {
-      key: tid,
-      style: {
-        background: "var(--bg-2)",
-        border: "1px solid var(--line-soft)",
-        borderRadius: 8,
-        overflow: "hidden"
-      }
-    }, /*#__PURE__*/React.createElement("div", {
-      style: {
-        padding: "7px 12px",
-        background: "var(--bg-3)",
-        borderBottom: "1px solid var(--line-soft)",
-        fontFamily: "var(--fui)",
-        fontSize: 10,
-        fontWeight: 700,
-        letterSpacing: "0.1em",
-        color: accent
-      }
-    }, nm, " \u2014 kickout target players"), /*#__PURE__*/React.createElement("table", {
-      className: "tbl"
-    }, /*#__PURE__*/React.createElement("thead", null, /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("th", null, "Player"), /*#__PURE__*/React.createElement("th", {
-      style: {
-        textAlign: "right"
-      }
-    }, "Won/Total"), /*#__PURE__*/React.createElement("th", {
-      style: {
-        textAlign: "right"
-      }
-    }, "Won %"))), /*#__PURE__*/React.createElement("tbody", null, rows.length === 0 && /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("td", {
-      colSpan: "3",
-      style: {
-        textAlign: "center",
-        color: "var(--t3)",
-        padding: 14
-      }
-    }, "No kickout target data")), rows.map(r => /*#__PURE__*/React.createElement("tr", {
-      key: r.pid
-    }, /*#__PURE__*/React.createElement("td", {
-      className: "player"
-    }, r.name), /*#__PURE__*/React.createElement("td", {
-      className: "num",
-      style: {
-        color: accent
-      }
-    }, r.won, "/", r.total), /*#__PURE__*/React.createElement("td", {
-      className: "num",
-      style: {
-        color: r.total > 0 && Math.round(r.won / r.total * 100) >= 60 ? "var(--score)" : "var(--t2)",
-        fontWeight: 700
-      }
-    }, r.total > 0 ? Math.round(r.won / r.total * 100) + "%" : "–"))))));
-  }));
+  }, teams.map(({
+    tid,
+    nm,
+    accent,
+    rows
+  }) => /*#__PURE__*/React.createElement("div", {
+    key: tid,
+    style: {
+      background: "var(--bg-2)",
+      border: "1px solid var(--line-soft)",
+      borderRadius: 8,
+      overflow: "hidden"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: "7px 12px",
+      background: "var(--bg-3)",
+      borderBottom: "1px solid var(--line-soft)",
+      fontFamily: "var(--fui)",
+      fontSize: 10,
+      fontWeight: 700,
+      letterSpacing: "0.1em",
+      color: accent
+    }
+  }, nm, " \u2014 kickout target players"), /*#__PURE__*/React.createElement("table", {
+    className: "tbl"
+  }, /*#__PURE__*/React.createElement("thead", null, /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("th", null, "Player"), /*#__PURE__*/React.createElement("th", {
+    style: {
+      textAlign: "right"
+    }
+  }, "Won/Total"), /*#__PURE__*/React.createElement("th", {
+    style: {
+      textAlign: "right"
+    }
+  }, "Won %"))), /*#__PURE__*/React.createElement("tbody", null, rows.length === 0 && /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("td", {
+    colSpan: "3",
+    style: {
+      textAlign: "center",
+      color: "var(--t3)",
+      padding: 14
+    }
+  }, "No kickout target data")), rows.map(r => /*#__PURE__*/React.createElement("tr", {
+    key: r.pid
+  }, /*#__PURE__*/React.createElement("td", {
+    className: "player"
+  }, r.name), /*#__PURE__*/React.createElement("td", {
+    className: "num",
+    style: {
+      color: accent
+    }
+  }, r.won, "/", r.total), /*#__PURE__*/React.createElement("td", {
+    className: "num",
+    style: {
+      color: r.total > 0 && Math.round(r.won / r.total * 100) >= 60 ? "var(--score)" : "var(--t2)",
+      fontWeight: 700
+    }
+  }, r.total > 0 ? Math.round(r.won / r.total * 100) + "%" : "–"))))))));
 }
 
 // ─── Individual Performance ──────────────────────────────────────────
-function IndividualPerformance(_ref41) {
-  let events = _ref41.events,
-    homeTeam = _ref41.homeTeam,
-    awayTeam = _ref41.awayTeam,
-    showH = _ref41.showH,
-    showA = _ref41.showA;
+function IndividualPerformance({
+  events,
+  homeTeam,
+  awayTeam,
+  showH,
+  showA
+}) {
   const compute = (tid, teamObj) => {
     const pids = new Set(events.filter(e => e.team === tid && (e.type === "shot" || e.type === "turnover") && e.player).map(e => e.player));
     return [...pids].map(pid => {
@@ -5570,218 +5612,217 @@ function IndividualPerformance(_ref41) {
       flexDirection: "column",
       gap: 14
     }
-  }, teams.map(_ref42 => {
-    let tid = _ref42.tid,
-      nm = _ref42.nm,
-      accent = _ref42.accent,
-      rows = _ref42.rows;
-    return /*#__PURE__*/React.createElement("div", {
-      key: tid,
-      style: {
-        background: "var(--bg-2)",
-        border: "1px solid var(--line-soft)",
-        borderRadius: 8,
-        overflow: "hidden"
-      }
-    }, /*#__PURE__*/React.createElement("div", {
-      style: {
-        padding: "8px 12px",
-        background: "var(--bg-3)",
-        borderBottom: "1px solid var(--line-soft)",
-        display: "flex",
-        alignItems: "center",
-        gap: 8
-      }
-    }, /*#__PURE__*/React.createElement("span", {
-      style: {
-        width: 3,
-        height: 14,
-        background: accent,
-        borderRadius: 1
-      }
-    }), /*#__PURE__*/React.createElement("span", {
-      style: {
-        fontFamily: "var(--fui)",
-        fontSize: 10,
-        fontWeight: 700,
-        letterSpacing: "0.12em",
-        color: accent,
-        textTransform: "uppercase"
-      }
-    }, nm), /*#__PURE__*/React.createElement("span", {
-      style: {
-        fontFamily: "var(--fm)",
-        fontSize: 10,
-        color: "var(--t3)",
-        marginLeft: "auto"
-      }
-    }, rows.length, " player", rows.length !== 1 ? "s" : "")), /*#__PURE__*/React.createElement("table", {
-      className: "tbl"
-    }, /*#__PURE__*/React.createElement("thead", null, /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("th", null, "Player"), /*#__PURE__*/React.createElement("th", {
-      style: {
-        textAlign: "right"
-      }
-    }, "Score"), /*#__PURE__*/React.createElement("th", {
-      style: {
-        textAlign: "right"
-      }
-    }, "xP"), /*#__PURE__*/React.createElement("th", {
-      style: {
-        textAlign: "right"
-      }
-    }, "+/\u2212 xP"), /*#__PURE__*/React.createElement("th", {
-      style: {
-        textAlign: "right"
-      }
-    }, "T/O+"), /*#__PURE__*/React.createElement("th", {
-      style: {
-        textAlign: "right"
-      }
-    }, "T/O\u2212"), /*#__PURE__*/React.createElement("th", {
-      style: {
-        textAlign: "right"
-      }
-    }, "T/O +/\u2212"), /*#__PURE__*/React.createElement("th", {
-      style: {
-        textAlign: "right"
-      }
-    }, "Fouls"))), /*#__PURE__*/React.createElement("tbody", null, rows.length === 0 && /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("td", {
-      colSpan: "8",
-      style: {
-        textAlign: "center",
-        color: "var(--t3)",
-        padding: 14
-      }
-    }, "No individual data")), rows.map(p => /*#__PURE__*/React.createElement("tr", {
-      key: p.pid
+  }, teams.map(({
+    tid,
+    nm,
+    accent,
+    rows
+  }) => /*#__PURE__*/React.createElement("div", {
+    key: tid,
+    style: {
+      background: "var(--bg-2)",
+      border: "1px solid var(--line-soft)",
+      borderRadius: 8,
+      overflow: "hidden"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: "8px 12px",
+      background: "var(--bg-3)",
+      borderBottom: "1px solid var(--line-soft)",
+      display: "flex",
+      alignItems: "center",
+      gap: 8
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      width: 3,
+      height: 14,
+      background: accent,
+      borderRadius: 1
+    }
+  }), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontFamily: "var(--fui)",
+      fontSize: 10,
+      fontWeight: 700,
+      letterSpacing: "0.12em",
+      color: accent,
+      textTransform: "uppercase"
+    }
+  }, nm), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontFamily: "var(--fm)",
+      fontSize: 10,
+      color: "var(--t3)",
+      marginLeft: "auto"
+    }
+  }, rows.length, " player", rows.length !== 1 ? "s" : "")), /*#__PURE__*/React.createElement("table", {
+    className: "tbl"
+  }, /*#__PURE__*/React.createElement("thead", null, /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("th", null, "Player"), /*#__PURE__*/React.createElement("th", {
+    style: {
+      textAlign: "right"
+    }
+  }, "Score"), /*#__PURE__*/React.createElement("th", {
+    style: {
+      textAlign: "right"
+    }
+  }, "xP"), /*#__PURE__*/React.createElement("th", {
+    style: {
+      textAlign: "right"
+    }
+  }, "+/\u2212 xP"), /*#__PURE__*/React.createElement("th", {
+    style: {
+      textAlign: "right"
+    }
+  }, "T/O+"), /*#__PURE__*/React.createElement("th", {
+    style: {
+      textAlign: "right"
+    }
+  }, "T/O\u2212"), /*#__PURE__*/React.createElement("th", {
+    style: {
+      textAlign: "right"
+    }
+  }, "T/O +/\u2212"), /*#__PURE__*/React.createElement("th", {
+    style: {
+      textAlign: "right"
+    }
+  }, "Fouls"))), /*#__PURE__*/React.createElement("tbody", null, rows.length === 0 && /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("td", {
+    colSpan: "8",
+    style: {
+      textAlign: "center",
+      color: "var(--t3)",
+      padding: 14
+    }
+  }, "No individual data")), rows.map(p => /*#__PURE__*/React.createElement("tr", {
+    key: p.pid
+  }, /*#__PURE__*/React.createElement("td", {
+    className: "player"
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "pn"
+  }, p.num), p.name), /*#__PURE__*/React.createElement("td", {
+    className: "num",
+    style: {
+      color: p.actPts ? accent : "var(--t3)",
+      fontWeight: p.actPts ? 700 : 400
+    }
+  }, p.goals, "-", p.twos, "-", p.pts), /*#__PURE__*/React.createElement("td", {
+    className: "num",
+    style: {
+      color: "var(--t2)"
+    }
+  }, p.shots ? p.xp.toFixed(2) : "–"), /*#__PURE__*/React.createElement("td", {
+    className: "num",
+    style: {
+      color: p.xpDiff > 0.5 ? "var(--score)" : p.xpDiff < -0.5 ? "var(--away)" : "var(--t2)",
+      fontWeight: 700
+    }
+  }, p.shots ? (p.xpDiff >= 0 ? "+" : "") + p.xpDiff.toFixed(2) : "–"), /*#__PURE__*/React.createElement("td", {
+    className: "num",
+    style: {
+      color: p.toW ? "var(--score)" : "var(--t4)"
+    }
+  }, p.toW || "–"), /*#__PURE__*/React.createElement("td", {
+    className: "num",
+    style: {
+      color: p.toL ? "var(--away)" : "var(--t4)"
+    }
+  }, p.toL || "–"), /*#__PURE__*/React.createElement("td", {
+    className: "num",
+    style: {
+      color: p.toDiff > 0 ? "var(--score)" : p.toDiff < 0 ? "var(--away)" : "var(--t2)",
+      fontWeight: 700
+    }
+  }, p.toW || p.toL ? (p.toDiff >= 0 ? "+" : "") + p.toDiff : "–"), /*#__PURE__*/React.createElement("td", {
+    className: "num",
+    style: {
+      color: p.fl ? "var(--gold)" : "var(--t4)"
+    }
+  }, p.fl || "–"))), rows.length > 0 && (() => {
+    const T = rows.reduce((s, p) => ({
+      goals: s.goals + p.goals,
+      twos: s.twos + p.twos,
+      pts: s.pts + p.pts,
+      actPts: s.actPts + p.actPts,
+      xp: s.xp + p.xp,
+      toW: s.toW + p.toW,
+      toL: s.toL + p.toL,
+      fl: s.fl + p.fl
+    }), {
+      goals: 0,
+      twos: 0,
+      pts: 0,
+      actPts: 0,
+      xp: 0,
+      toW: 0,
+      toL: 0,
+      fl: 0
+    });
+    const Td = T.actPts - T.xp;
+    const Tod = T.toW - T.toL;
+    return /*#__PURE__*/React.createElement("tr", {
+      className: "tot"
     }, /*#__PURE__*/React.createElement("td", {
       className: "player"
-    }, /*#__PURE__*/React.createElement("span", {
-      className: "pn"
-    }, p.num), p.name), /*#__PURE__*/React.createElement("td", {
+    }, "Totals"), /*#__PURE__*/React.createElement("td", {
       className: "num",
       style: {
-        color: p.actPts ? accent : "var(--t3)",
-        fontWeight: p.actPts ? 700 : 400
-      }
-    }, p.goals, "-", p.twos, "-", p.pts), /*#__PURE__*/React.createElement("td", {
-      className: "num",
-      style: {
-        color: "var(--t2)"
-      }
-    }, p.shots ? p.xp.toFixed(2) : "–"), /*#__PURE__*/React.createElement("td", {
-      className: "num",
-      style: {
-        color: p.xpDiff > 0.5 ? "var(--score)" : p.xpDiff < -0.5 ? "var(--away)" : "var(--t2)",
+        color: accent,
         fontWeight: 700
       }
-    }, p.shots ? (p.xpDiff >= 0 ? "+" : "") + p.xpDiff.toFixed(2) : "–"), /*#__PURE__*/React.createElement("td", {
+    }, T.goals, "-", T.twos, "-", T.pts), /*#__PURE__*/React.createElement("td", {
       className: "num",
       style: {
-        color: p.toW ? "var(--score)" : "var(--t4)"
-      }
-    }, p.toW || "–"), /*#__PURE__*/React.createElement("td", {
-      className: "num",
-      style: {
-        color: p.toL ? "var(--away)" : "var(--t4)"
-      }
-    }, p.toL || "–"), /*#__PURE__*/React.createElement("td", {
-      className: "num",
-      style: {
-        color: p.toDiff > 0 ? "var(--score)" : p.toDiff < 0 ? "var(--away)" : "var(--t2)",
         fontWeight: 700
       }
-    }, p.toW || p.toL ? (p.toDiff >= 0 ? "+" : "") + p.toDiff : "–"), /*#__PURE__*/React.createElement("td", {
+    }, T.xp.toFixed(2)), /*#__PURE__*/React.createElement("td", {
       className: "num",
       style: {
-        color: p.fl ? "var(--gold)" : "var(--t4)"
+        color: Td >= 0 ? "var(--score)" : "var(--away)",
+        fontWeight: 700
       }
-    }, p.fl || "–"))), rows.length > 0 && (() => {
-      const T = rows.reduce((s, p) => ({
-        goals: s.goals + p.goals,
-        twos: s.twos + p.twos,
-        pts: s.pts + p.pts,
-        actPts: s.actPts + p.actPts,
-        xp: s.xp + p.xp,
-        toW: s.toW + p.toW,
-        toL: s.toL + p.toL,
-        fl: s.fl + p.fl
-      }), {
-        goals: 0,
-        twos: 0,
-        pts: 0,
-        actPts: 0,
-        xp: 0,
-        toW: 0,
-        toL: 0,
-        fl: 0
-      });
-      const Td = T.actPts - T.xp;
-      const Tod = T.toW - T.toL;
-      return /*#__PURE__*/React.createElement("tr", {
-        className: "tot"
-      }, /*#__PURE__*/React.createElement("td", {
-        className: "player"
-      }, "Totals"), /*#__PURE__*/React.createElement("td", {
-        className: "num",
-        style: {
-          color: accent,
-          fontWeight: 700
-        }
-      }, T.goals, "-", T.twos, "-", T.pts), /*#__PURE__*/React.createElement("td", {
-        className: "num",
-        style: {
-          fontWeight: 700
-        }
-      }, T.xp.toFixed(2)), /*#__PURE__*/React.createElement("td", {
-        className: "num",
-        style: {
-          color: Td >= 0 ? "var(--score)" : "var(--away)",
-          fontWeight: 700
-        }
-      }, (Td >= 0 ? "+" : "") + Td.toFixed(2)), /*#__PURE__*/React.createElement("td", {
-        className: "num",
-        style: {
-          color: "var(--score)",
-          fontWeight: 700
-        }
-      }, T.toW || "–"), /*#__PURE__*/React.createElement("td", {
-        className: "num",
-        style: {
-          color: "var(--away)",
-          fontWeight: 700
-        }
-      }, T.toL || "–"), /*#__PURE__*/React.createElement("td", {
-        className: "num",
-        style: {
-          color: Tod >= 0 ? "var(--score)" : "var(--away)",
-          fontWeight: 700
-        }
-      }, (Tod >= 0 ? "+" : "") + Tod), /*#__PURE__*/React.createElement("td", {
-        className: "num",
-        style: {
-          color: "var(--gold)",
-          fontWeight: 700
-        }
-      }, T.fl || "–"));
-    })())), rows.length > 0 && /*#__PURE__*/React.createElement("div", {
+    }, (Td >= 0 ? "+" : "") + Td.toFixed(2)), /*#__PURE__*/React.createElement("td", {
+      className: "num",
       style: {
-        padding: "8px 12px",
-        borderTop: "1px solid var(--line-soft)",
-        display: "flex",
-        flexWrap: "wrap",
-        gap: 5
+        color: "var(--score)",
+        fontWeight: 700
       }
-    }, rows.map(p => /*#__PURE__*/React.createElement("button", {
-      key: p.pid,
-      className: "tbtn",
+    }, T.toW || "–"), /*#__PURE__*/React.createElement("td", {
+      className: "num",
       style: {
-        fontSize: 10,
-        padding: "3px 9px"
-      },
-      onClick: () => exportPlayerReport(p, tid, nm, rows, events, accent)
-    }, "\uD83D\uDCC4 #", p.num, " ", p.name))));
-  }));
+        color: "var(--away)",
+        fontWeight: 700
+      }
+    }, T.toL || "–"), /*#__PURE__*/React.createElement("td", {
+      className: "num",
+      style: {
+        color: Tod >= 0 ? "var(--score)" : "var(--away)",
+        fontWeight: 700
+      }
+    }, (Tod >= 0 ? "+" : "") + Tod), /*#__PURE__*/React.createElement("td", {
+      className: "num",
+      style: {
+        color: "var(--gold)",
+        fontWeight: 700
+      }
+    }, T.fl || "–"));
+  })())), rows.length > 0 && /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: "8px 12px",
+      borderTop: "1px solid var(--line-soft)",
+      display: "flex",
+      flexWrap: "wrap",
+      gap: 5
+    }
+  }, rows.map(p => /*#__PURE__*/React.createElement("button", {
+    key: p.pid,
+    className: "tbtn",
+    style: {
+      fontSize: 10,
+      padding: "3px 9px"
+    },
+    onClick: () => exportPlayerReport(p, tid, nm, rows, events, accent)
+  }, "\uD83D\uDCC4 #", p.num, " ", p.name))))));
 }
 
 // ─── Individual Player PDF ────────────────────────────────────────────
@@ -5872,19 +5913,14 @@ ${playerShots.length > 0 ? `<div class="st">Shot Log</div><table><thead><tr><th>
 
 // ─── GAA Tracker · Map / Lineup / Chart / Log tabs ───────────────────
 
-function MapTab(_ref43) {
-  let events = _ref43.events,
-    homeTeam = _ref43.homeTeam,
-    awayTeam = _ref43.awayTeam;
-  const _useState3 = useState("both"),
-    teamFilter = _useState3[0],
-    setTeamFilter = _useState3[1];
-  const _useState4 = useState("all"),
-    typeFilter = _useState4[0],
-    setTypeFilter = _useState4[1];
-  const _useState5 = useState("all"),
-    player = _useState5[0],
-    setPlayer = _useState5[1];
+function MapTab({
+  events,
+  homeTeam,
+  awayTeam
+}) {
+  const [teamFilter, setTeamFilter] = useState("both");
+  const [typeFilter, setTypeFilter] = useState("all");
+  const [player, setPlayer] = useState("all");
 
   // reset player when team changes
   useEffect(() => {
@@ -5976,15 +6012,11 @@ function MapTab(_ref43) {
       gap: 6,
       flexWrap: "wrap"
     }
-  }, [["all", "All"], ["scoring", "Scores"], ["miss", "Misses"], ["turnover", "Turnovers"], ["foul", "Fouls"], ["kickout", "Kickouts"]].map(_ref44 => {
-    let k = _ref44[0],
-      l = _ref44[1];
-    return /*#__PURE__*/React.createElement("button", {
-      key: k,
-      className: `chip ${typeFilter === k ? "on" : ""}`,
-      onClick: () => setTypeFilter(k)
-    }, l);
-  }))), /*#__PURE__*/React.createElement("div", {
+  }, [["all", "All"], ["scoring", "Scores"], ["miss", "Misses"], ["turnover", "Turnovers"], ["foul", "Fouls"], ["kickout", "Kickouts"]].map(([k, l]) => /*#__PURE__*/React.createElement("button", {
+    key: k,
+    className: `chip ${typeFilter === k ? "on" : ""}`,
+    onClick: () => setTypeFilter(k)
+  }, l)))), /*#__PURE__*/React.createElement("div", {
     className: "card"
   }, /*#__PURE__*/React.createElement("div", {
     className: "card-h"
@@ -6107,55 +6139,49 @@ function MapTab(_ref43) {
       fontSize: 11,
       color: "var(--t3)"
     }
-  }, [["circle", "var(--score)", "Goal"], ["circle", "var(--violet)", "2-Pt"], ["circle", "var(--home)", "Point"], ["ring", "var(--wide)", "Wide/miss"], ["diamond", "var(--score)", "T/O Won"], ["diamond", "var(--away)", "T/O Lost"], ["tri", "var(--gold)", "Foul"], ["cross", "var(--home)", "Kickout"]].map(_ref45 => {
-    let shape = _ref45[0],
-      col = _ref45[1],
-      l = _ref45[2];
-    return /*#__PURE__*/React.createElement("span", {
-      key: l,
-      style: {
-        display: "inline-flex",
-        alignItems: "center",
-        gap: 6
-      }
-    }, /*#__PURE__*/React.createElement("span", {
-      style: {
-        width: 9,
-        height: 9,
-        display: "inline-block",
-        ...(shape === "circle" ? {
-          borderRadius: "50%",
-          background: col
-        } : shape === "ring" ? {
-          borderRadius: "50%",
-          border: `1.5px solid ${col}`
-        } : shape === "diamond" ? {
-          background: col,
-          transform: "rotate(45deg)"
-        } : shape === "tri" ? {
-          width: 0,
-          height: 0,
-          background: "transparent",
-          borderLeft: "4.5px solid transparent",
-          borderRight: "4.5px solid transparent",
-          borderBottom: `8px solid ${col}`
-        } : {
-          borderRadius: "50%",
-          border: `1.5px solid ${col}`
-        })
-      }
-    }), l);
-  })))));
+  }, [["circle", "var(--score)", "Goal"], ["circle", "var(--violet)", "2-Pt"], ["circle", "var(--home)", "Point"], ["ring", "var(--wide)", "Wide/miss"], ["diamond", "var(--score)", "T/O Won"], ["diamond", "var(--away)", "T/O Lost"], ["tri", "var(--gold)", "Foul"], ["cross", "var(--home)", "Kickout"]].map(([shape, col, l]) => /*#__PURE__*/React.createElement("span", {
+    key: l,
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 6
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      width: 9,
+      height: 9,
+      display: "inline-block",
+      ...(shape === "circle" ? {
+        borderRadius: "50%",
+        background: col
+      } : shape === "ring" ? {
+        borderRadius: "50%",
+        border: `1.5px solid ${col}`
+      } : shape === "diamond" ? {
+        background: col,
+        transform: "rotate(45deg)"
+      } : shape === "tri" ? {
+        width: 0,
+        height: 0,
+        background: "transparent",
+        borderLeft: "4.5px solid transparent",
+        borderRight: "4.5px solid transparent",
+        borderBottom: `8px solid ${col}`
+      } : {
+        borderRadius: "50%",
+        border: `1.5px solid ${col}`
+      })
+    }
+  }), l))))));
 }
 
 // ─── Lineup Tab ──────────────────────────────────────────────────────
-function LineupTab(_ref46) {
-  let events = _ref46.events,
-    homeTeam = _ref46.homeTeam,
-    awayTeam = _ref46.awayTeam;
-  const _useState6 = useState("home"),
-    tab = _useState6[0],
-    setTab = _useState6[1];
+function LineupTab({
+  events,
+  homeTeam,
+  awayTeam
+}) {
+  const [tab, setTab] = useState("home");
   const team = tab === "home" ? homeTeam : awayTeam;
   const accent = tab === "home" ? "var(--home)" : "var(--away)";
   const subsOut = events.filter(e => e.type === "sub" && e.team === tab);
@@ -6259,10 +6285,11 @@ function LineupTab(_ref46) {
 }
 
 // ─── Chart / Momentum Tab ─────────────────────────────────────────────
-function ChartTab(_ref47) {
-  let events = _ref47.events,
-    homeTeam = _ref47.homeTeam,
-    awayTeam = _ref47.awayTeam;
+function ChartTab({
+  events,
+  homeTeam,
+  awayTeam
+}) {
   // Build cumulative score deltas (home - away) over time
   const shots = events.filter(e => e.type === "shot" && ["goal", "point", "2point"].includes(e.outcome)).sort((a, b) => a.time - b.time);
   const maxTime = Math.max(...shots.map(s => s.time), 1800);
@@ -6557,15 +6584,14 @@ function ChartTab(_ref47) {
 }
 
 // ─── Log Tab ─────────────────────────────────────────────────────────
-function LogTab(_ref48) {
-  let events = _ref48.events,
-    homeTeam = _ref48.homeTeam,
-    awayTeam = _ref48.awayTeam,
-    onEditEvent = _ref48.onEditEvent,
-    onDeleteEvent = _ref48.onDeleteEvent;
-  const _useState7 = useState("all"),
-    filter = _useState7[0],
-    setFilter = _useState7[1];
+function LogTab({
+  events,
+  homeTeam,
+  awayTeam,
+  onEditEvent,
+  onDeleteEvent
+}) {
+  const [filter, setFilter] = useState("all");
   const filtered = filter === "all" ? events : events.filter(e => e.type === filter);
   const labelFor = e => {
     if (e.type === "shot") {
@@ -6632,15 +6658,11 @@ function LogTab(_ref48) {
       gap: 6,
       flexWrap: "wrap"
     }
-  }, filterOpts.map(_ref49 => {
-    let k = _ref49[0],
-      l = _ref49[1];
-    return /*#__PURE__*/React.createElement("button", {
-      key: k,
-      className: `chip ${filter === k ? "on" : ""}`,
-      onClick: () => setFilter(k)
-    }, l);
-  })), /*#__PURE__*/React.createElement("button", {
+  }, filterOpts.map(([k, l]) => /*#__PURE__*/React.createElement("button", {
+    key: k,
+    className: `chip ${filter === k ? "on" : ""}`,
+    onClick: () => setFilter(k)
+  }, l))), /*#__PURE__*/React.createElement("button", {
     className: "tbtn",
     onClick: () => downloadCSV(events, homeTeam, awayTeam)
   }, /*#__PURE__*/React.createElement(Icon, {
@@ -6750,15 +6772,16 @@ function LogTab(_ref48) {
 
 // ─── GAA Tracker · Actions Tab + Action Modal ────────────────────────
 
-function ActionsTab(_ref50) {
-  let events = _ref50.events,
-    homeTeam = _ref50.homeTeam,
-    awayTeam = _ref50.awayTeam,
-    lockedTeam = _ref50.lockedTeam,
-    setLockedTeam = _ref50.setLockedTeam,
-    openAction = _ref50.openAction,
-    onEditEvent = _ref50.onEditEvent,
-    onDeleteEvent = _ref50.onDeleteEvent;
+function ActionsTab({
+  events,
+  homeTeam,
+  awayTeam,
+  lockedTeam,
+  setLockedTeam,
+  openAction,
+  onEditEvent,
+  onDeleteEvent
+}) {
   const team = lockedTeam === "home" ? homeTeam : awayTeam;
   const accent = lockedTeam === "home" ? "var(--home)" : "var(--away)";
 
@@ -6782,38 +6805,37 @@ function ActionsTab(_ref50) {
     }
     return out;
   })();
-  const QuickBtn = _ref51 => {
-    let icon = _ref51.icon,
-      label = _ref51.label,
-      sub = _ref51.sub,
-      klass = _ref51.klass,
-      onClick = _ref51.onClick;
-    return /*#__PURE__*/React.createElement("button", {
-      className: `qbtn ${klass}`,
-      onClick: onClick
-    }, /*#__PURE__*/React.createElement("div", {
-      style: {
-        display: "flex",
-        alignItems: "center",
-        gap: 10,
-        width: "100%"
-      }
-    }, /*#__PURE__*/React.createElement(Icon, {
-      name: icon,
-      size: 20,
-      color: "var(--t1)"
-    }), /*#__PURE__*/React.createElement("span", {
-      style: {
-        flex: 1,
-        fontFamily: "var(--fd)",
-        fontWeight: 600,
-        fontSize: 16,
-        letterSpacing: "-0.005em"
-      }
-    }, label)), /*#__PURE__*/React.createElement("div", {
-      className: "sub"
-    }, sub));
-  };
+  const QuickBtn = ({
+    icon,
+    label,
+    sub,
+    klass,
+    onClick
+  }) => /*#__PURE__*/React.createElement("button", {
+    className: `qbtn ${klass}`,
+    onClick: onClick
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 10,
+      width: "100%"
+    }
+  }, /*#__PURE__*/React.createElement(Icon, {
+    name: icon,
+    size: 20,
+    color: "var(--t1)"
+  }), /*#__PURE__*/React.createElement("span", {
+    style: {
+      flex: 1,
+      fontFamily: "var(--fd)",
+      fontWeight: 600,
+      fontSize: 16,
+      letterSpacing: "-0.005em"
+    }
+  }, label)), /*#__PURE__*/React.createElement("div", {
+    className: "sub"
+  }, sub));
   return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
     className: "sec"
   }, /*#__PURE__*/React.createElement("div", {
@@ -7056,45 +7078,44 @@ function ActionsTab(_ref50) {
       color: "var(--t3)",
       fontSize: 12
     }
-  }, "No events yet"), recent.map(_ref52 => {
-    let p = _ref52.p,
-      t = _ref52.t;
-    return /*#__PURE__*/React.createElement("button", {
-      key: p.id,
-      onClick: () => setLockedTeam(t),
-      style: {
-        display: "flex",
-        alignItems: "center",
-        gap: 9,
-        padding: "8px 11px",
-        background: "var(--bg-2)",
-        border: "1px solid var(--line-soft)",
-        borderRadius: 100,
-        transition: ".12s"
-      },
-      onMouseEnter: e => e.currentTarget.style.borderColor = "var(--line)",
-      onMouseLeave: e => e.currentTarget.style.borderColor = "var(--line-soft)"
-    }, /*#__PURE__*/React.createElement("span", {
-      style: {
-        width: 22,
-        height: 22,
-        borderRadius: 6,
-        background: t === "home" ? "var(--home-d)" : "var(--away-d)",
-        color: t === "home" ? "var(--home)" : "var(--away)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        fontFamily: "var(--fm)",
-        fontSize: 11,
-        fontWeight: 700
-      }
-    }, p.num), /*#__PURE__*/React.createElement("span", {
-      style: {
-        fontSize: 12,
-        fontWeight: 600
-      }
-    }, p.name));
-  })))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+  }, "No events yet"), recent.map(({
+    p,
+    t
+  }) => /*#__PURE__*/React.createElement("button", {
+    key: p.id,
+    onClick: () => setLockedTeam(t),
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 9,
+      padding: "8px 11px",
+      background: "var(--bg-2)",
+      border: "1px solid var(--line-soft)",
+      borderRadius: 100,
+      transition: ".12s"
+    },
+    onMouseEnter: e => e.currentTarget.style.borderColor = "var(--line)",
+    onMouseLeave: e => e.currentTarget.style.borderColor = "var(--line-soft)"
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      width: 22,
+      height: 22,
+      borderRadius: 6,
+      background: t === "home" ? "var(--home-d)" : "var(--away-d)",
+      color: t === "home" ? "var(--home)" : "var(--away)",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      fontFamily: "var(--fm)",
+      fontSize: 11,
+      fontWeight: 700
+    }
+  }, p.num), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 12,
+      fontWeight: 600
+    }
+  }, p.name)))))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
     className: "sec"
   }, /*#__PURE__*/React.createElement("div", {
     className: "sec-t"
@@ -7120,11 +7141,12 @@ function ActionsTab(_ref50) {
     awayTeam: awayTeam
   })))))));
 }
-function MiniEventRow(_ref53) {
+function MiniEventRow({
+  event: e,
+  homeTeam,
+  awayTeam
+}) {
   var _SHOT_OUTCOMES$find4;
-  let e = _ref53.event,
-    homeTeam = _ref53.homeTeam,
-    awayTeam = _ref53.awayTeam;
   if (e.type === "half") return null;
   const t = e.team === "home" ? homeTeam : awayTeam;
   const p = t == null ? void 0 : t.players.find(x => x.id === e.player);
@@ -7165,12 +7187,13 @@ function MiniEventRow(_ref53) {
 }
 
 // ─── Action Modal ────────────────────────────────────────────────────
-function ActionModal(_ref54) {
-  let action = _ref54.action,
-    setAction = _ref54.setAction,
-    homeTeam = _ref54.homeTeam,
-    awayTeam = _ref54.awayTeam,
-    onComplete = _ref54.onComplete;
+function ActionModal({
+  action,
+  setAction,
+  homeTeam,
+  awayTeam,
+  onComplete
+}) {
   if (!action) return null;
   const team = action.team === "home" ? homeTeam : action.team === "away" ? awayTeam : null;
   const titles = {
@@ -7340,14 +7363,15 @@ function prevStepFor(a) {
   const i = order.indexOf(a.step);
   return i > 0 ? order[i - 1] : null;
 }
-function ActionModalBody(_ref55) {
-  let action = _ref55.action,
-    team = _ref55.team,
-    homeTeam = _ref55.homeTeam,
-    awayTeam = _ref55.awayTeam,
-    advance = _ref55.advance,
-    back = _ref55.back,
-    setAction = _ref55.setAction;
+function ActionModalBody({
+  action,
+  team,
+  homeTeam,
+  awayTeam,
+  advance,
+  back,
+  setAction
+}) {
   const step = action.step;
 
   // ── Team selection ──
@@ -7358,43 +7382,38 @@ function ActionModalBody(_ref55) {
         gridTemplateColumns: "1fr 1fr",
         gap: 12
       }
-    }, [["home", homeTeam, "var(--home)"], ["away", awayTeam, "var(--away)"]].map(_ref56 => {
-      let id = _ref56[0],
-        t = _ref56[1],
-        col = _ref56[2];
-      return /*#__PURE__*/React.createElement("button", {
-        key: id,
-        onClick: () => advance({
-          team: id
-        }),
-        style: {
-          padding: "22px 16px",
-          background: "var(--bg-2)",
-          border: `1px solid ${col}`,
-          borderRadius: 12,
-          display: "flex",
-          flexDirection: "column",
-          gap: 6,
-          alignItems: "flex-start",
-          transition: ".12s"
-        }
-      }, /*#__PURE__*/React.createElement("div", {
-        style: {
-          fontFamily: "var(--fui)",
-          fontSize: 10,
-          letterSpacing: "0.16em",
-          color: "var(--t3)",
-          textTransform: "uppercase"
-        }
-      }, id), /*#__PURE__*/React.createElement("div", {
-        style: {
-          fontFamily: "var(--fd)",
-          fontSize: 22,
-          fontWeight: 600,
-          color: col
-        }
-      }, t.name));
-    }));
+    }, [["home", homeTeam, "var(--home)"], ["away", awayTeam, "var(--away)"]].map(([id, t, col]) => /*#__PURE__*/React.createElement("button", {
+      key: id,
+      onClick: () => advance({
+        team: id
+      }),
+      style: {
+        padding: "22px 16px",
+        background: "var(--bg-2)",
+        border: `1px solid ${col}`,
+        borderRadius: 12,
+        display: "flex",
+        flexDirection: "column",
+        gap: 6,
+        alignItems: "flex-start",
+        transition: ".12s"
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontFamily: "var(--fui)",
+        fontSize: 10,
+        letterSpacing: "0.16em",
+        color: "var(--t3)",
+        textTransform: "uppercase"
+      }
+    }, id), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontFamily: "var(--fd)",
+        fontSize: 22,
+        fontWeight: 600,
+        color: col
+      }
+    }, t.name))));
   }
 
   // ── Player selection ──
@@ -7703,35 +7722,29 @@ function ActionModalBody(_ref55) {
         gridTemplateColumns: "1fr 1fr",
         gap: 10
       }
-    }, [["none", "No card", "var(--t3)", "var(--bg-2)"], ["yellow", "Yellow", "oklch(0.78 0.16 95)", "oklch(0.78 0.16 95 / 0.15)"], ["black", "Black", "var(--t1)", "var(--bg-3)"], ["red", "Red", "var(--away)", "var(--away-d)"]].map(_ref57 => {
-      let id = _ref57[0],
-        l = _ref57[1],
-        c = _ref57[2],
-        bg = _ref57[3];
-      return /*#__PURE__*/React.createElement("button", {
-        key: id,
-        onClick: () => advance({
-          card: id
-        }),
-        style: {
-          padding: "18px",
-          background: bg,
-          border: `1px solid ${c}`,
-          color: c,
-          borderRadius: 10,
-          fontFamily: "var(--fd)",
-          fontSize: 16,
-          fontWeight: 600,
-          display: "flex",
-          flexDirection: "column",
-          gap: 6,
-          alignItems: "flex-start"
-        }
-      }, /*#__PURE__*/React.createElement(Icon, {
-        name: "card",
-        size: 18
-      }), /*#__PURE__*/React.createElement("span", null, l));
-    }));
+    }, [["none", "No card", "var(--t3)", "var(--bg-2)"], ["yellow", "Yellow", "oklch(0.78 0.16 95)", "oklch(0.78 0.16 95 / 0.15)"], ["black", "Black", "var(--t1)", "var(--bg-3)"], ["red", "Red", "var(--away)", "var(--away-d)"]].map(([id, l, c, bg]) => /*#__PURE__*/React.createElement("button", {
+      key: id,
+      onClick: () => advance({
+        card: id
+      }),
+      style: {
+        padding: "18px",
+        background: bg,
+        border: `1px solid ${c}`,
+        color: c,
+        borderRadius: 10,
+        fontFamily: "var(--fd)",
+        fontSize: 16,
+        fontWeight: 600,
+        display: "flex",
+        flexDirection: "column",
+        gap: 6,
+        alignItems: "flex-start"
+      }
+    }, /*#__PURE__*/React.createElement(Icon, {
+      name: "card",
+      size: 18
+    }), /*#__PURE__*/React.createElement("span", null, l))));
   }
 
   // ── Kickout result ──
@@ -7875,19 +7888,14 @@ const JERSEY_DESIGNS = [{
 }];
 
 // Tiny jersey SVG preview
-function Jersey(_ref58) {
-  let _ref58$design = _ref58.design,
-    design = _ref58$design === void 0 ? "plain" : _ref58$design,
-    _ref58$primary = _ref58.primary,
-    primary = _ref58$primary === void 0 ? "#3d8edb" : _ref58$primary,
-    _ref58$secondary = _ref58.secondary,
-    secondary = _ref58$secondary === void 0 ? "#fff9e6" : _ref58$secondary,
-    _ref58$numberColor = _ref58.numberColor,
-    numberColor = _ref58$numberColor === void 0 ? "#ffffff" : _ref58$numberColor,
-    _ref58$number = _ref58.number,
-    number = _ref58$number === void 0 ? null : _ref58$number,
-    _ref58$size = _ref58.size,
-    size = _ref58$size === void 0 ? 46 : _ref58$size;
+function Jersey({
+  design = "plain",
+  primary = "#3d8edb",
+  secondary = "#fff9e6",
+  numberColor = "#ffffff",
+  number = null,
+  size = 46
+}) {
   const W = 50,
     H = 60;
   const body = "M 8,12 L 18,8 L 22,14 L 28,14 L 32,8 L 42,12 L 44,46 L 6,46 Z";
@@ -7949,21 +7957,20 @@ function Jersey(_ref58) {
 }
 
 // ─── Setup Screen ────────────────────────────────────────────────────
-function SetupScreen(_ref59) {
-  let onStart = _ref59.onStart,
-    onViewSaved = _ref59.onViewSaved,
-    onViewSeason = _ref59.onViewSeason,
-    homeTeam = _ref59.homeTeam,
-    awayTeam = _ref59.awayTeam,
-    setHomeTeam = _ref59.setHomeTeam,
-    setAwayTeam = _ref59.setAwayTeam,
-    venue = _ref59.venue,
-    setVenue = _ref59.setVenue,
-    halfLength = _ref59.halfLength,
-    setHalfLength = _ref59.setHalfLength;
-  const _useState8 = useState("teams"),
-    section = _useState8[0],
-    setSection = _useState8[1];
+function SetupScreen({
+  onStart,
+  onViewSaved,
+  onViewSeason,
+  homeTeam,
+  awayTeam,
+  setHomeTeam,
+  setAwayTeam,
+  venue,
+  setVenue,
+  halfLength,
+  setHalfLength
+}) {
+  const [section, setSection] = useState("teams");
   const SECTIONS = [["teams", "users", "Teams & Squads"], ["jerseys", "shield", "Jerseys & Colours"], ["conditions", "target", "Win Conditions"], ["progression", "play", "Play Progression"], ["saved", "save", "Saved Matches"], ["season", "chart", "Season Stats"]];
   return /*#__PURE__*/React.createElement("div", {
     style: {
@@ -8097,18 +8104,13 @@ function SetupScreen(_ref59) {
       top: 0,
       zIndex: 5
     }
-  }, SECTIONS.map(_ref60 => {
-    let id = _ref60[0],
-      icon = _ref60[1],
-      label = _ref60[2];
-    return /*#__PURE__*/React.createElement("button", {
-      key: id,
-      className: `tab ${section === id ? "on" : ""}`,
-      onClick: () => setSection(id)
-    }, /*#__PURE__*/React.createElement(Icon, {
-      name: icon
-    }), " ", label);
-  })), /*#__PURE__*/React.createElement("div", {
+  }, SECTIONS.map(([id, icon, label]) => /*#__PURE__*/React.createElement("button", {
+    key: id,
+    className: `tab ${section === id ? "on" : ""}`,
+    onClick: () => setSection(id)
+  }, /*#__PURE__*/React.createElement(Icon, {
+    name: icon
+  }), " ", label))), /*#__PURE__*/React.createElement("div", {
     className: "content",
     style: {
       flex: 1,
@@ -8135,28 +8137,21 @@ function SetupScreen(_ref59) {
 }
 
 // ─── Teams & Squads ──────────────────────────────────────────────────
-function TeamsSection(_ref61) {
+function TeamsSection({
+  homeTeam,
+  awayTeam,
+  setHomeTeam,
+  setAwayTeam
+}) {
   var _POSITIONS$find3;
-  let homeTeam = _ref61.homeTeam,
-    awayTeam = _ref61.awayTeam,
-    setHomeTeam = _ref61.setHomeTeam,
-    setAwayTeam = _ref61.setAwayTeam;
-  const _useState9 = useState("home"),
-    active = _useState9[0],
-    setActive = _useState9[1];
+  const [active, setActive] = useState("home");
   const team = active === "home" ? homeTeam : awayTeam;
   const setTeam = active === "home" ? setHomeTeam : setAwayTeam;
   const accent = active === "home" ? "var(--home)" : "var(--away)";
-  const _useState0 = useState(null),
-    selPos = _useState0[0],
-    setSelPos = _useState0[1];
+  const [selPos, setSelPos] = useState(null);
   const csvInputRef = useRef(null);
-  const _useState1 = useState(false),
-    showTemplates = _useState1[0],
-    setShowTemplates = _useState1[1];
-  const _useState10 = useState([]),
-    savedTemplates = _useState10[0],
-    setSavedTemplates = _useState10[1];
+  const [showTemplates, setShowTemplates] = useState(false);
+  const [savedTemplates, setSavedTemplates] = useState([]);
   const TMPL_PREFIX = "gaa:tmpl:";
   const saveTemplate = async () => {
     const tname = (team.name || "Unnamed").trim();
@@ -8835,12 +8830,13 @@ function TeamsSection(_ref61) {
     size: 14
   }))))))))));
 }
-function SquadList(_ref62) {
-  let players = _ref62.players,
-    title = _ref62.title,
-    titleColor = _ref62.titleColor,
-    updatePlayer = _ref62.updatePlayer,
-    removePlayer = _ref62.removePlayer;
+function SquadList({
+  players,
+  title,
+  titleColor,
+  updatePlayer,
+  removePlayer
+}) {
   if (players.length === 0) return null;
   return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
     style: {
@@ -8922,35 +8918,31 @@ function SquadList(_ref62) {
 }
 
 // ─── Jerseys & Colours ───────────────────────────────────────────────
-function JerseysSection(_ref63) {
-  let homeTeam = _ref63.homeTeam,
-    awayTeam = _ref63.awayTeam,
-    setHomeTeam = _ref63.setHomeTeam,
-    setAwayTeam = _ref63.setAwayTeam;
+function JerseysSection({
+  homeTeam,
+  awayTeam,
+  setHomeTeam,
+  setAwayTeam
+}) {
   return /*#__PURE__*/React.createElement("div", {
     className: "col-2",
     style: {
       alignItems: "start"
     }
-  }, [[homeTeam, setHomeTeam, "Home", "var(--home)"], [awayTeam, setAwayTeam, "Away", "var(--away)"]].map(_ref64 => {
-    let t = _ref64[0],
-      setT = _ref64[1],
-      label = _ref64[2],
-      col = _ref64[3];
-    return /*#__PURE__*/React.createElement(JerseyEditor, {
-      key: label,
-      team: t,
-      setTeam: setT,
-      label: label,
-      accent: col
-    });
-  }));
+  }, [[homeTeam, setHomeTeam, "Home", "var(--home)"], [awayTeam, setAwayTeam, "Away", "var(--away)"]].map(([t, setT, label, col]) => /*#__PURE__*/React.createElement(JerseyEditor, {
+    key: label,
+    team: t,
+    setTeam: setT,
+    label: label,
+    accent: col
+  })));
 }
-function JerseyEditor(_ref65) {
-  let team = _ref65.team,
-    setTeam = _ref65.setTeam,
-    label = _ref65.label,
-    accent = _ref65.accent;
+function JerseyEditor({
+  team,
+  setTeam,
+  label,
+  accent
+}) {
   const j = team.jersey || {
     design: "plain",
     primary: "#3d8edb",
@@ -9021,50 +9013,46 @@ function JerseyEditor(_ref65) {
       gridTemplateColumns: "1fr 1fr 1fr",
       gap: 12
     }
-  }, [["Primary", "primary"], ["Secondary", "secondary"], ["Number", "numberColor"]].map(_ref66 => {
-    let l = _ref66[0],
-      key = _ref66[1];
-    return /*#__PURE__*/React.createElement("label", {
-      key: key,
-      className: "field",
-      style: {
-        margin: 0
-      }
-    }, /*#__PURE__*/React.createElement("div", {
-      className: "field-l"
-    }, l), /*#__PURE__*/React.createElement("div", {
-      style: {
-        display: "flex",
-        alignItems: "center",
-        gap: 8
-      }
-    }, /*#__PURE__*/React.createElement("input", {
-      type: "color",
-      value: j[key],
-      onChange: e => set({
-        [key]: e.target.value
-      }),
-      style: {
-        width: 44,
-        height: 36,
-        padding: 2,
-        border: "1px solid var(--line-soft)",
-        background: "var(--bg-2)",
-        borderRadius: 6
-      }
-    }), /*#__PURE__*/React.createElement("input", {
-      value: j[key],
-      onChange: e => set({
-        [key]: e.target.value
-      }),
-      className: "inp",
-      style: {
-        padding: "7px 10px",
-        fontFamily: "var(--fm)",
-        fontSize: 12
-      }
-    })));
-  })), /*#__PURE__*/React.createElement("div", {
+  }, [["Primary", "primary"], ["Secondary", "secondary"], ["Number", "numberColor"]].map(([l, key]) => /*#__PURE__*/React.createElement("label", {
+    key: key,
+    className: "field",
+    style: {
+      margin: 0
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "field-l"
+  }, l), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 8
+    }
+  }, /*#__PURE__*/React.createElement("input", {
+    type: "color",
+    value: j[key],
+    onChange: e => set({
+      [key]: e.target.value
+    }),
+    style: {
+      width: 44,
+      height: 36,
+      padding: 2,
+      border: "1px solid var(--line-soft)",
+      background: "var(--bg-2)",
+      borderRadius: 6
+    }
+  }), /*#__PURE__*/React.createElement("input", {
+    value: j[key],
+    onChange: e => set({
+      [key]: e.target.value
+    }),
+    className: "inp",
+    style: {
+      padding: "7px 10px",
+      fontFamily: "var(--fm)",
+      fontSize: 12
+    }
+  }))))), /*#__PURE__*/React.createElement("div", {
     style: {
       marginTop: 18,
       paddingTop: 16,
@@ -9162,12 +9150,11 @@ const DEFAULT_CONDITIONS = [{
   trend: "lower",
   category: "Defensive"
 }];
-function WinConditionsSection(_ref67) {
-  let homeTeam = _ref67.homeTeam,
-    awayTeam = _ref67.awayTeam;
-  const _useState11 = useState(DEFAULT_CONDITIONS),
-    conds = _useState11[0],
-    setConds = _useState11[1];
+function WinConditionsSection({
+  homeTeam,
+  awayTeam
+}) {
+  const [conds, setConds] = useState(DEFAULT_CONDITIONS);
   const cats = [...new Set(conds.map(c => c.category))];
   const updateCond = (id, patch) => setConds(cs => cs.map(c => c.id === id ? {
     ...c,
@@ -9389,19 +9376,17 @@ const mockActual = id => {
 
 // ─── Play Progression ────────────────────────────────────────────────
 function PlayProgressionSection() {
-  const _useState12 = useState({
-      halfMin: 30,
-      etEnabled: true,
-      etMin: 10,
-      halfTimeMin: 10,
-      homeAttacksLeft: true,
-      switchAtHT: true,
-      autoEndHalf: true,
-      autoLogKO: true,
-      quartersMode: "standard"
-    }),
-    config = _useState12[0],
-    setConfig = _useState12[1];
+  const [config, setConfig] = useState({
+    halfMin: 30,
+    etEnabled: true,
+    etMin: 10,
+    halfTimeMin: 10,
+    homeAttacksLeft: true,
+    switchAtHT: true,
+    autoEndHalf: true,
+    autoLogKO: true,
+    quartersMode: "standard"
+  });
   const set = patch => setConfig(c => ({
     ...c,
     ...patch
@@ -9428,60 +9413,53 @@ function PlayProgressionSection() {
       flexDirection: "column",
       gap: 14
     }
-  }, [["Half length", "halfMin", "min", 1, 60], ["Half-time break", "halfTimeMin", "min", 0, 30], ["Extra-time half", "etMin", "min", 0, 30]].map(_ref68 => {
-    let l = _ref68[0],
-      k = _ref68[1],
-      unit = _ref68[2],
-      mn = _ref68[3],
-      mx = _ref68[4];
-    return /*#__PURE__*/React.createElement("div", {
-      key: k,
-      style: {
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        gap: 12
-      }
-    }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
-      style: {
-        fontSize: 13,
-        color: "var(--t1)"
-      }
-    }, l), /*#__PURE__*/React.createElement("div", {
-      className: "kpi-s",
-      style: {
-        marginTop: 2
-      }
-    }, "Match total: ", config.halfMin * 2 + (config.etEnabled ? config.etMin * 2 : 0), " min")), /*#__PURE__*/React.createElement("div", {
-      style: {
-        display: "flex",
-        alignItems: "center",
-        gap: 6
-      }
-    }, /*#__PURE__*/React.createElement("input", {
-      type: "number",
-      min: mn,
-      max: mx,
-      value: config[k],
-      onChange: e => set({
-        [k]: +e.target.value
-      }),
-      className: "inp",
-      style: {
-        padding: "6px 10px",
-        fontSize: 13,
-        width: 80,
-        textAlign: "right",
-        fontFamily: "var(--fm)"
-      }
-    }), /*#__PURE__*/React.createElement("span", {
-      style: {
-        color: "var(--t3)",
-        fontSize: 11,
-        width: 26
-      }
-    }, unit)));
-  }), /*#__PURE__*/React.createElement("div", {
+  }, [["Half length", "halfMin", "min", 1, 60], ["Half-time break", "halfTimeMin", "min", 0, 30], ["Extra-time half", "etMin", "min", 0, 30]].map(([l, k, unit, mn, mx]) => /*#__PURE__*/React.createElement("div", {
+    key: k,
+    style: {
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between",
+      gap: 12
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 13,
+      color: "var(--t1)"
+    }
+  }, l), /*#__PURE__*/React.createElement("div", {
+    className: "kpi-s",
+    style: {
+      marginTop: 2
+    }
+  }, "Match total: ", config.halfMin * 2 + (config.etEnabled ? config.etMin * 2 : 0), " min")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 6
+    }
+  }, /*#__PURE__*/React.createElement("input", {
+    type: "number",
+    min: mn,
+    max: mx,
+    value: config[k],
+    onChange: e => set({
+      [k]: +e.target.value
+    }),
+    className: "inp",
+    style: {
+      padding: "6px 10px",
+      fontSize: 13,
+      width: 80,
+      textAlign: "right",
+      fontFamily: "var(--fm)"
+    }
+  }), /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: "var(--t3)",
+      fontSize: 11,
+      width: 26
+    }
+  }, unit)))), /*#__PURE__*/React.createElement("div", {
     style: {
       marginTop: 4
     }
@@ -9524,27 +9502,23 @@ function PlayProgressionSection() {
       gridTemplateColumns: "1fr 1fr",
       gap: 8
     }
-  }, [["standard", "Standard (Q at 15min / 45min)"], ["even", "Even thirds per half"], ["off", "Off — half splits only"]].map(_ref69 => {
-    let k = _ref69[0],
-      l = _ref69[1];
-    return /*#__PURE__*/React.createElement("button", {
-      key: k,
-      onClick: () => set({
-        quartersMode: k
-      }),
-      style: {
-        padding: "12px 14px",
-        background: config.quartersMode === k ? "var(--gold-d)" : "var(--bg-2)",
-        border: `1px solid ${config.quartersMode === k ? "var(--gold)" : "var(--line-soft)"}`,
-        color: config.quartersMode === k ? "var(--gold)" : "var(--t1)",
-        borderRadius: 8,
-        textAlign: "left",
-        fontSize: 13,
-        fontWeight: 600,
-        gridColumn: k === "standard" ? "1 / -1" : "auto"
-      }
-    }, l);
-  })))), /*#__PURE__*/React.createElement("div", {
+  }, [["standard", "Standard (Q at 15min / 45min)"], ["even", "Even thirds per half"], ["off", "Off — half splits only"]].map(([k, l]) => /*#__PURE__*/React.createElement("button", {
+    key: k,
+    onClick: () => set({
+      quartersMode: k
+    }),
+    style: {
+      padding: "12px 14px",
+      background: config.quartersMode === k ? "var(--gold-d)" : "var(--bg-2)",
+      border: `1px solid ${config.quartersMode === k ? "var(--gold)" : "var(--line-soft)"}`,
+      color: config.quartersMode === k ? "var(--gold)" : "var(--t1)",
+      borderRadius: 8,
+      textAlign: "left",
+      fontSize: 13,
+      fontWeight: 600,
+      gridColumn: k === "standard" ? "1 / -1" : "auto"
+    }
+  }, l))))), /*#__PURE__*/React.createElement("div", {
     className: "card"
   }, /*#__PURE__*/React.createElement("div", {
     className: "card-h"
@@ -9659,10 +9633,11 @@ function PlayProgressionSection() {
     }, b.min, "'")));
   })()))));
 }
-function Toggle(_ref70) {
-  let label = _ref70.label,
-    on = _ref70.on,
-    onChange = _ref70.onChange;
+function Toggle({
+  label,
+  on,
+  onChange
+}) {
   return /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
@@ -9763,15 +9738,9 @@ const SAVED_MATCHES = [{
   comp: "Friendly"
 }];
 function SavedMatchesSection() {
-  const _useState13 = useState("all"),
-    filter = _useState13[0],
-    setFilter = _useState13[1];
-  const _useState14 = useState("all"),
-    teamFilter = _useState14[0],
-    setTeamFilter = _useState14[1];
-  const _useState15 = useState(false),
-    showTeamFilter = _useState15[0],
-    setShowTeamFilter = _useState15[1];
+  const [filter, setFilter] = useState("all");
+  const [teamFilter, setTeamFilter] = useState("all");
+  const [showTeamFilter, setShowTeamFilter] = useState(false);
   const allTeams = [...new Set(SAVED_MATCHES.map(m => m.home))];
   const filtered = SAVED_MATCHES.filter(m => filter === "all" ? true : filter === "wins" ? m.won === true : m.won === false).filter(m => teamFilter === "all" || m.home === teamFilter);
   const exportCSV = () => {
@@ -9807,15 +9776,11 @@ function SavedMatchesSection() {
       display: "flex",
       gap: 6
     }
-  }, [["all", "All"], ["wins", "Wins"], ["losses", "Losses"]].map(_ref71 => {
-    let k = _ref71[0],
-      l = _ref71[1];
-    return /*#__PURE__*/React.createElement("button", {
-      key: k,
-      className: `chip ${filter === k ? "on" : ""}`,
-      onClick: () => setFilter(k)
-    }, l);
-  })), /*#__PURE__*/React.createElement("div", {
+  }, [["all", "All"], ["wins", "Wins"], ["losses", "Losses"]].map(([k, l]) => /*#__PURE__*/React.createElement("button", {
+    key: k,
+    className: `chip ${filter === k ? "on" : ""}`,
+    onClick: () => setFilter(k)
+  }, l))), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       gap: 8,
@@ -9946,9 +9911,10 @@ function SavedMatchesSection() {
 }
 
 // ─── Season Player Stats ─────────────────────────────────────────────
-function SeasonStatsSection(_ref72) {
+function SeasonStatsSection({
+  homeTeam
+}) {
   var _seasonStats$, _seasonStats$2, _seasonStats$3;
-  let homeTeam = _ref72.homeTeam;
   // Mock season aggregates
   const seasonStats = homeTeam.players.slice(0, 15).map((p, i) => {
     // Pseudo-random but stable values
@@ -10199,11 +10165,10 @@ function SeasonStatsSection(_ref72) {
 }
 
 // ─── Season Trends Chart ─────────────────────────────────────────────
-function SeasonTrendsChart(_ref73) {
-  let homeTeamName = _ref73.homeTeamName;
-  const _useState16 = useState(null),
-    trendData = _useState16[0],
-    setTrendData = _useState16[1];
+function SeasonTrendsChart({
+  homeTeamName
+}) {
+  const [trendData, setTrendData] = useState(null);
   useEffect(() => {
     listMatches().then(all => {
       const hm = [...all].filter(m => {
@@ -10260,14 +10225,13 @@ function SeasonTrendsChart(_ref73) {
       padding: "18px 0"
     }
   }, "Save at least 2 matches to see trends."));
-  const Spark = _ref74 => {
-    let data = _ref74.data,
-      color = _ref74.color,
-      label = _ref74.label,
-      _ref74$fmt = _ref74.fmt,
-      fmt = _ref74$fmt === void 0 ? v => v : _ref74$fmt,
-      _ref74$zero = _ref74.zero,
-      zero = _ref74$zero === void 0 ? true : _ref74$zero;
+  const Spark = ({
+    data,
+    color,
+    label,
+    fmt = v => v,
+    zero = true
+  }) => {
     const vals = data.map(d => d.v);
     const mn = Math.min(...vals),
       mx = Math.max(...vals),
@@ -10527,24 +10491,19 @@ function ruleBasedAnalyst(question, ctx) {
   summary.push(`Try one of the preset questions on the left for a more focused answer, or rephrase asking about shooting, turnovers, players, kickouts, or what to fix.`);
   return summary.join("\n\n");
 }
-function AIAnalystModal(_ref75) {
+function AIAnalystModal({
+  events,
+  homeTeam,
+  awayTeam,
+  seconds,
+  half,
+  phase,
+  onClose
+}) {
   var _window$claude2, _window$claude3;
-  let events = _ref75.events,
-    homeTeam = _ref75.homeTeam,
-    awayTeam = _ref75.awayTeam,
-    seconds = _ref75.seconds,
-    half = _ref75.half,
-    phase = _ref75.phase,
-    onClose = _ref75.onClose;
-  const _useState17 = useState(""),
-    question = _useState17[0],
-    setQuestion = _useState17[1];
-  const _useState18 = useState([]),
-    history = _useState18[0],
-    setHistory = _useState18[1];
-  const _useState19 = useState(false),
-    busy = _useState19[0],
-    setBusy = _useState19[1];
+  const [question, setQuestion] = useState("");
+  const [history, setHistory] = useState([]);
+  const [busy, setBusy] = useState(false);
   const scrollRef = useRef(null);
 
   // Build a compact match-state digest for the model
@@ -10568,9 +10527,7 @@ function AIAnalystModal(_ref75) {
         };
         if (s.outcome === "goal") byPid[s.player].goals++;else if (s.outcome === "2point") byPid[s.player].twos++;else if (s.outcome === "point") byPid[s.player].points++;else byPid[s.player].misses++;
       });
-      return Object.entries(byPid).map(_ref76 => {
-        let pid = _ref76[0],
-          s = _ref76[1];
+      return Object.entries(byPid).map(([pid, s]) => {
         const p = teamObj.players.find(pl => pl.id === pid);
         const pts = s.goals * 3 + s.twos * 2 + s.points;
         return {
@@ -10939,8 +10896,9 @@ ANSWER PERSPECTIVE: From the manager of ${c.home.name} (home team).`;
     }
   }, "Powered by Claude Haiku \xB7 runs against live match state \xB7 responses are advisory"))))));
 }
-function ChatBubble(_ref77) {
-  let m = _ref77.message;
+function ChatBubble({
+  message: m
+}) {
   if (m.role === "user") {
     return /*#__PURE__*/React.createElement("div", {
       style: {
@@ -11116,15 +11074,10 @@ function buildReportHTML(analysis, h, a, hAgg, aAgg, hScore, aScore, hN, aN, ven
   const fbip = s => `${Math.floor(s / 60)}:${String(Math.round(s % 60)).padStart(2, "0")}`;
   const esc = s => (s || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
   const colHdr = `<thead><tr><th style="text-align:left;min-width:110px;"></th>${COLS.map(c => `<th class="${HEAVY.has(c.id) ? "heavy" : ""}">${c.label}</th>`).join("")}</tr></thead>`;
-  const qRow = function (label, hB, aB, fmt) {
-    if (fmt === void 0) {
-      fmt = v => v || v === 0 ? v : "–";
-    }
-    return `
+  const qRow = (label, hB, aB, fmt = v => v || v === 0 ? v : "–") => `
     <tr class="shdr"><td colspan="9">${label}</td></tr>
     <tr><td class="tl home-cl">${esc(hN)}</td>${COLS.map(c => `<td class="${HEAVY.has(c.id) ? "heavy" : ""}">${fmt(hB[c.id])}</td>`).join("")}</tr>
     <tr><td class="tl away-cl">${esc(aN)}</td>${COLS.map(c => `<td class="${HEAVY.has(c.id) ? "heavy" : ""}">${fmt(aB[c.id])}</td>`).join("")}</tr>`;
-  };
   const B = (n, d) => COLS.reduce((r, c) => ({
     ...r,
     [c.id]: pct(n[c.id], d[c.id])
@@ -11312,12 +11265,7 @@ ${qRow("xP +/− vs Actual", hXPDiff, aXPDiff)}
 </tbody></table>
 <div class="page-title">Full Match — Key Stats Comparison</div>
 <table><thead><tr><th style="text-align:left">Metric</th><th style="color:#6db3f7">${esc(hN)}</th><th style="color:#f78080">${esc(aN)}</th></tr></thead><tbody>
-${[["Final Score", `${hScore.g}-${hScore.p2}-${hScore.p} (${hScore.total})`, `${aScore.g}-${aScore.p2}-${aScore.p} (${aScore.total})`], ["Possessions", hAgg.possessions, aAgg.possessions], ["Shots", hAgg.shots, aAgg.shots], ["Scores", hAgg.scores, aAgg.scores], ["Shot Conversion", hAgg.conv + "%", aAgg.conv + "%"], ["Productivity (Pts/10)", dp1(hAgg.productivity), dp1(aAgg.productivity)], ["Total xP", dp2(hAgg.xP), dp2(aAgg.xP)], ["xP Delta", sign(hAgg.xPDelta), sign(aAgg.xPDelta)], ["SQI", hAgg.sqi, aAgg.sqi], ["Possession %", hAgg.possPct + "%", aAgg.possPct + "%"], ["Avg Possession (s)", hAgg.avgPossSec, aAgg.avgPossSec], ["T/O Won", hAgg.toWon, aAgg.toWon], ["T/O Lost", hAgg.toLost, aAgg.toLost], ["T/O Net", (hAgg.toWon - hAgg.toLost >= 0 ? "+" : "") + (hAgg.toWon - hAgg.toLost), (aAgg.toWon - aAgg.toLost >= 0 ? "+" : "") + (aAgg.toWon - aAgg.toLost)], ["KO Success", `${hAgg.kosWon}/${hAgg.kos} (${hAgg.kosPct}%)`, `${aAgg.kosWon}/${aAgg.kos} (${aAgg.kosPct}%)`]].map(_ref78 => {
-    let l = _ref78[0],
-      hv = _ref78[1],
-      av = _ref78[2];
-    return `<tr><td style="font-weight:600;color:#333">${l}</td><td style="color:#003DA5;font-weight:600">${hv}</td><td style="color:#9B1B30;font-weight:600">${av}</td></tr>`;
-  }).join("")}
+${[["Final Score", `${hScore.g}-${hScore.p2}-${hScore.p} (${hScore.total})`, `${aScore.g}-${aScore.p2}-${aScore.p} (${aScore.total})`], ["Possessions", hAgg.possessions, aAgg.possessions], ["Shots", hAgg.shots, aAgg.shots], ["Scores", hAgg.scores, aAgg.scores], ["Shot Conversion", hAgg.conv + "%", aAgg.conv + "%"], ["Productivity (Pts/10)", dp1(hAgg.productivity), dp1(aAgg.productivity)], ["Total xP", dp2(hAgg.xP), dp2(aAgg.xP)], ["xP Delta", sign(hAgg.xPDelta), sign(aAgg.xPDelta)], ["SQI", hAgg.sqi, aAgg.sqi], ["Possession %", hAgg.possPct + "%", aAgg.possPct + "%"], ["Avg Possession (s)", hAgg.avgPossSec, aAgg.avgPossSec], ["T/O Won", hAgg.toWon, aAgg.toWon], ["T/O Lost", hAgg.toLost, aAgg.toLost], ["T/O Net", (hAgg.toWon - hAgg.toLost >= 0 ? "+" : "") + (hAgg.toWon - hAgg.toLost), (aAgg.toWon - aAgg.toLost >= 0 ? "+" : "") + (aAgg.toWon - aAgg.toLost)], ["KO Success", `${hAgg.kosWon}/${hAgg.kos} (${hAgg.kosPct}%)`, `${aAgg.kosWon}/${aAgg.kos} (${aAgg.kosPct}%)`]].map(([l, hv, av]) => `<tr><td style="font-weight:600;color:#333">${l}</td><td style="color:#003DA5;font-weight:600">${hv}</td><td style="color:#9B1B30;font-weight:600">${av}</td></tr>`).join("")}
 </tbody></table>
 <div class="footer">GAA Match Tracker · ${esc(hN)} v ${esc(aN)} · ${esc(matchDate)} · Page 3</div>
 </div>
@@ -11327,87 +11275,35 @@ ${[["Final Score", `${hScore.g}-${hScore.p2}-${hScore.p} (${hScore.total})`, `${
 // ─── GAA Tracker · Main App ─────────────────────────────────────────
 
 function App() {
-  const _useState20 = useState("setup"),
-    screen = _useState20[0],
-    setScreen = _useState20[1]; // "setup" | "match" | "saved" | "season"
-  const _useState21 = useState("live"),
-    tab = _useState21[0],
-    setTab = _useState21[1];
-  const _useState22 = useState(EVENTS),
-    events = _useState22[0],
-    setEvents = _useState22[1];
-  const _useState23 = useState(0),
-    seconds = _useState23[0],
-    setSeconds = _useState23[1];
-  const _useState24 = useState(false),
-    running = _useState24[0],
-    setRunning = _useState24[1];
-  const _useState25 = useState(1),
-    half = _useState25[0],
-    setHalf = _useState25[1];
-  const _useState26 = useState("pre"),
-    phase = _useState26[0],
-    setPhase = _useState26[1]; // "pre" | "live" | "ht" | "ft"
-  const _useState27 = useState("home"),
-    lockedTeam = _useState27[0],
-    setLockedTeam = _useState27[1];
-  const _useState28 = useState(null),
-    action = _useState28[0],
-    setAction = _useState28[1];
-  const _useState29 = useState(false),
-    showAI = _useState29[0],
-    setShowAI = _useState29[1];
-  const _useState30 = useState(false),
-    exporting = _useState30[0],
-    setExporting = _useState30[1];
-  const _useState31 = useState(null),
-    reportHTML = _useState31[0],
-    setReportHTML = _useState31[1];
+  const [screen, setScreen] = useState("setup"); // "setup" | "match" | "saved" | "season"
+  const [tab, setTab] = useState("live");
+  const [events, setEvents] = useState(EVENTS);
+  const [seconds, setSeconds] = useState(0);
+  const [running, setRunning] = useState(false);
+  const [half, setHalf] = useState(1);
+  const [phase, setPhase] = useState("pre"); // "pre" | "live" | "ht" | "ft"
+  const [lockedTeam, setLockedTeam] = useState("home");
+  const [action, setAction] = useState(null);
+  const [showAI, setShowAI] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [reportHTML, setReportHTML] = useState(null);
   const reportFrameRef = useRef(null);
-  const _useState32 = useState(false),
-    showSync = _useState32[0],
-    setShowSync = _useState32[1];
-  const _useState33 = useState(null),
-    syncMode = _useState33[0],
-    setSyncMode = _useState33[1]; // null | "host" | "viewer"
-  const _useState34 = useState(""),
-    syncCode = _useState34[0],
-    setSyncCode = _useState34[1];
-  const _useState35 = useState(""),
-    syncJoinCode = _useState35[0],
-    setSyncJoinCode = _useState35[1];
-  const _useState36 = useState("off"),
-    syncStatus = _useState36[0],
-    setSyncStatus = _useState36[1]; // "off"|"hosting"|"connected"|"error"
-  const _useState37 = useState(0),
-    syncPeerCount = _useState37[0],
-    setSyncPeerCount = _useState37[1];
+  const [showSync, setShowSync] = useState(false);
+  const [syncMode, setSyncMode] = useState(null); // null | "host" | "viewer"
+  const [syncCode, setSyncCode] = useState("");
+  const [syncJoinCode, setSyncJoinCode] = useState("");
+  const [syncStatus, setSyncStatus] = useState("off"); // "off"|"hosting"|"connected"|"error"
+  const [syncPeerCount, setSyncPeerCount] = useState(0);
   const syncPeerRef = useRef(null);
   const syncConnsRef = useRef([]);
-  const _useState38 = useState(null),
-    editingEvent = _useState38[0],
-    setEditingEvent = _useState38[1];
-  const _useState39 = useState(null),
-    saveStatus = _useState39[0],
-    setSaveStatus = _useState39[1]; // null | "saving" | "saved"
-  const _useState40 = useState(null),
-    loadedMatchId = _useState40[0],
-    setLoadedMatchId = _useState40[1];
-  const _useState41 = useState(null),
-    lastUndo = _useState41[0],
-    setLastUndo = _useState41[1];
-  const _useState42 = useState(HOME_TEAM),
-    homeTeam = _useState42[0],
-    setHomeTeam = _useState42[1];
-  const _useState43 = useState(AWAY_TEAM),
-    awayTeam = _useState43[0],
-    setAwayTeam = _useState43[1];
-  const _useState44 = useState(""),
-    venue = _useState44[0],
-    setVenue = _useState44[1];
-  const _useState45 = useState(30),
-    halfLength = _useState45[0],
-    setHalfLength = _useState45[1];
+  const [editingEvent, setEditingEvent] = useState(null);
+  const [saveStatus, setSaveStatus] = useState(null); // null | "saving" | "saved"
+  const [loadedMatchId, setLoadedMatchId] = useState(null);
+  const [lastUndo, setLastUndo] = useState(null);
+  const [homeTeam, setHomeTeam] = useState(HOME_TEAM);
+  const [awayTeam, setAwayTeam] = useState(AWAY_TEAM);
+  const [venue, setVenue] = useState("");
+  const [halfLength, setHalfLength] = useState(30);
 
   // tick clock
   useEffect(() => {
@@ -11676,8 +11572,8 @@ function App() {
     if (exporting) return;
     setExporting(true);
     try {
-      const hQ = quartAggregate(events, "home");
-      const aQ = quartAggregate(events, "away");
+      const hQ = quartAggregate(events, "home", homeAttacksLeft);
+      const aQ = quartAggregate(events, "away", homeAttacksLeft);
       const hAg = aggregateStats(events, "home");
       const aAg = aggregateStats(events, "away");
       const hSc = scoreOf(events, "home");
@@ -11935,18 +11831,13 @@ function App() {
     name: "bolt"
   }), " Actions"), /*#__PURE__*/React.createElement("span", {
     className: "tab-sep"
-  }), TABS.slice(1).map(_ref79 => {
-    let id = _ref79[0],
-      icon = _ref79[1],
-      label = _ref79[2];
-    return /*#__PURE__*/React.createElement("button", {
-      key: id,
-      className: `tab ${tab === id ? "on" : ""}`,
-      onClick: () => setTab(id)
-    }, /*#__PURE__*/React.createElement(Icon, {
-      name: icon
-    }), " ", label);
-  })), /*#__PURE__*/React.createElement("div", {
+  }), TABS.slice(1).map(([id, icon, label]) => /*#__PURE__*/React.createElement("button", {
+    key: id,
+    className: `tab ${tab === id ? "on" : ""}`,
+    onClick: () => setTab(id)
+  }, /*#__PURE__*/React.createElement(Icon, {
+    name: icon
+  }), " ", label))), /*#__PURE__*/React.createElement("div", {
     className: "content"
   }, tab === "actions" && /*#__PURE__*/React.createElement(ActionsTab, {
     events: events,
@@ -11967,7 +11858,8 @@ function App() {
   }), tab === "detailed" && /*#__PURE__*/React.createElement(DetailedStatsTab, {
     events: events,
     homeTeam: homeTeam,
-    awayTeam: awayTeam
+    awayTeam: awayTeam,
+    homeAttacksLeft: homeAttacksLeft
   }), tab === "lineup" && /*#__PURE__*/React.createElement(LineupTab, {
     events: events,
     homeTeam: homeTeam,
@@ -12239,16 +12131,17 @@ function App() {
 }
 
 // ─── Scoreboard ──────────────────────────────────────────────────────
-function Scoreboard(_ref80) {
-  let homeTeam = _ref80.homeTeam,
-    awayTeam = _ref80.awayTeam,
-    homeScore = _ref80.homeScore,
-    awayScore = _ref80.awayScore,
-    seconds = _ref80.seconds,
-    running = _ref80.running,
-    half = _ref80.half,
-    phase = _ref80.phase,
-    venue = _ref80.venue;
+function Scoreboard({
+  homeTeam,
+  awayTeam,
+  homeScore,
+  awayScore,
+  seconds,
+  running,
+  half,
+  phase,
+  venue
+}) {
   const phaseLabel = phase === "live" ? "Live" : phase === "ht" ? "Half Time" : phase === "ft" ? "Full Time" : "Pre-Match";
   const phaseClass = phase === "live" ? "live" : phase === "ht" ? "ht" : "";
   const jH = homeTeam.jersey || {
@@ -12367,26 +12260,21 @@ function Scoreboard(_ref80) {
 }
 
 // ─── Edit Event Modal ────────────────────────────────────────────────
-function EditEventModal(_ref81) {
-  let event = _ref81.event,
-    homeTeam = _ref81.homeTeam,
-    awayTeam = _ref81.awayTeam,
-    onSave = _ref81.onSave,
-    onDelete = _ref81.onDelete,
-    onCancel = _ref81.onCancel;
-  const _useState46 = useState({
-      ...event
-    }),
-    e = _useState46[0],
-    setE = _useState46[1];
-  const _useState47 = useState(`${Math.floor((event.time || 0) / 60)}:${String((event.time || 0) % 60).padStart(2, "0")}`),
-    timeInput = _useState47[0],
-    setTimeInput = _useState47[1];
+function EditEventModal({
+  event,
+  homeTeam,
+  awayTeam,
+  onSave,
+  onDelete,
+  onCancel
+}) {
+  const [e, setE] = useState({
+    ...event
+  });
+  const [timeInput, setTimeInput] = useState(`${Math.floor((event.time || 0) / 60)}:${String((event.time || 0) % 60).padStart(2, "0")}`);
   const team = e.team === "home" ? homeTeam : e.team === "away" ? awayTeam : null;
   const parseTime = str => {
-    const _str$split$map = str.split(":").map(n => parseInt(n) || 0),
-      m = _str$split$map[0],
-      s = _str$split$map[1];
+    const [m, s] = str.split(":").map(n => parseInt(n) || 0);
     return m * 60 + s;
   };
   const save = () => onSave({
@@ -12623,15 +12511,12 @@ function EditEventModal(_ref81) {
 }
 
 // ─── Saved Matches Screen (real storage) ─────────────────────────────
-function SavedMatchesScreen(_ref82) {
-  let onLoad = _ref82.onLoad,
-    onBack = _ref82.onBack;
-  const _useState48 = useState(null),
-    matches = _useState48[0],
-    setMatches = _useState48[1];
-  const _useState49 = useState(""),
-    search = _useState49[0],
-    setSearch = _useState49[1];
+function SavedMatchesScreen({
+  onLoad,
+  onBack
+}) {
+  const [matches, setMatches] = useState(null);
+  const [search, setSearch] = useState("");
   useEffect(() => {
     listMatches().then(setMatches);
   }, []);
@@ -12782,26 +12667,17 @@ function SavedMatchesScreen(_ref82) {
 // ─── Season Heatmap Screen ───────────────────────────────────────────
 // Aggregates multiple saved matches onto a single pitch — choose which
 // matches to include, filter by team/event-type/player.
-function SeasonHeatmapScreen(_ref83) {
-  let currentHomeTeam = _ref83.currentHomeTeam,
-    currentAwayTeam = _ref83.currentAwayTeam,
-    currentEvents = _ref83.currentEvents,
-    onBack = _ref83.onBack;
-  const _useState50 = useState(null),
-    savedMatches = _useState50[0],
-    setSavedMatches = _useState50[1];
-  const _useState51 = useState(new Set()),
-    selected = _useState51[0],
-    setSelected = _useState51[1];
-  const _useState52 = useState("home"),
-    teamFilter = _useState52[0],
-    setTeamFilter = _useState52[1];
-  const _useState53 = useState("all"),
-    typeFilter = _useState53[0],
-    setTypeFilter = _useState53[1];
-  const _useState54 = useState("all"),
-    playerFilter = _useState54[0],
-    setPlayerFilter = _useState54[1];
+function SeasonHeatmapScreen({
+  currentHomeTeam,
+  currentAwayTeam,
+  currentEvents,
+  onBack
+}) {
+  const [savedMatches, setSavedMatches] = useState(null);
+  const [selected, setSelected] = useState(new Set());
+  const [teamFilter, setTeamFilter] = useState("home");
+  const [typeFilter, setTypeFilter] = useState("all");
+  const [playerFilter, setPlayerFilter] = useState("all");
   useEffect(() => {
     listMatches().then(ms => {
       setSavedMatches(ms || []);
@@ -13080,15 +12956,11 @@ function SeasonHeatmapScreen(_ref83) {
       gap: 6,
       flexWrap: "wrap"
     }
-  }, [["all", "All"], ["shot", "Shots"], ["turnover", "Turnovers"], ["kickout", "Kickouts"], ["foul", "Fouls"]].map(_ref84 => {
-    let k = _ref84[0],
-      l = _ref84[1];
-    return /*#__PURE__*/React.createElement("button", {
-      key: k,
-      onClick: () => setTypeFilter(k),
-      className: `chip ${typeFilter === k ? "on" : ""}`
-    }, l);
-  }))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+  }, [["all", "All"], ["shot", "Shots"], ["turnover", "Turnovers"], ["kickout", "Kickouts"], ["foul", "Fouls"]].map(([k, l]) => /*#__PURE__*/React.createElement("button", {
+    key: k,
+    onClick: () => setTypeFilter(k),
+    className: `chip ${typeFilter === k ? "on" : ""}`
+  }, l)))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
     className: "field-l"
   }, "Player"), /*#__PURE__*/React.createElement("select", {
     value: playerFilter,
@@ -13154,53 +13026,47 @@ function SeasonHeatmapScreen(_ref83) {
       fontSize: 11,
       color: "var(--t3)"
     }
-  }, [["circle", "var(--score)", "Goal/Score"], ["ring", "var(--wide)", "Miss"], ["diamond", "var(--score)", "T/O Won"], ["diamond", "var(--away)", "T/O Lost"], ["tri", "var(--gold)", "Foul"], ["cross", "var(--home)", "Kickout"]].map(_ref85 => {
-    let shape = _ref85[0],
-      col = _ref85[1],
-      l = _ref85[2];
-    return /*#__PURE__*/React.createElement("span", {
-      key: l,
-      style: {
-        display: "inline-flex",
-        alignItems: "center",
-        gap: 5
-      }
-    }, /*#__PURE__*/React.createElement("span", {
-      style: {
-        width: 9,
-        height: 9,
-        display: "inline-block",
-        ...(shape === "circle" ? {
-          borderRadius: "50%",
-          background: col
-        } : shape === "ring" ? {
-          borderRadius: "50%",
-          border: `1.5px solid ${col}`
-        } : shape === "diamond" ? {
-          background: col,
-          transform: "rotate(45deg)"
-        } : shape === "tri" ? {
-          width: 0,
-          height: 0,
-          background: "transparent",
-          borderLeft: "4.5px solid transparent",
-          borderRight: "4.5px solid transparent",
-          borderBottom: `8px solid ${col}`
-        } : {
-          borderRadius: "50%",
-          border: `1.5px solid ${col}`
-        })
-      }
-    }), l);
-  }))))));
+  }, [["circle", "var(--score)", "Goal/Score"], ["ring", "var(--wide)", "Miss"], ["diamond", "var(--score)", "T/O Won"], ["diamond", "var(--away)", "T/O Lost"], ["tri", "var(--gold)", "Foul"], ["cross", "var(--home)", "Kickout"]].map(([shape, col, l]) => /*#__PURE__*/React.createElement("span", {
+    key: l,
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 5
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      width: 9,
+      height: 9,
+      display: "inline-block",
+      ...(shape === "circle" ? {
+        borderRadius: "50%",
+        background: col
+      } : shape === "ring" ? {
+        borderRadius: "50%",
+        border: `1.5px solid ${col}`
+      } : shape === "diamond" ? {
+        background: col,
+        transform: "rotate(45deg)"
+      } : shape === "tri" ? {
+        width: 0,
+        height: 0,
+        background: "transparent",
+        borderLeft: "4.5px solid transparent",
+        borderRight: "4.5px solid transparent",
+        borderBottom: `8px solid ${col}`
+      } : {
+        borderRadius: "50%",
+        border: `1.5px solid ${col}`
+      })
+    }
+  }), l)))))));
 }
 // ─── Default export ──────────────────────────────────────────────────
 function GAATracker() {
   useStyles();
   return /*#__PURE__*/React.createElement(App, null);
 }
-const _c = document.getElementById('root');
+const _c = document.getElementById("root");
 ReactDOM.createRoot(_c).render(React.createElement(GAATracker, null));
 })();</script>
-</body>
-</html>
+</body></html>
