@@ -8099,7 +8099,10 @@ function SetupScreen({
   }), section === "conditions" && /*#__PURE__*/React.createElement(WinConditionsSection, {
     homeTeam: homeTeam,
     awayTeam: awayTeam
-  }), section === "progression" && /*#__PURE__*/React.createElement(PlayProgressionSection, null), section === "saved" && /*#__PURE__*/React.createElement(SavedMatchesSection, null), section === "season" && /*#__PURE__*/React.createElement(SeasonStatsSection, {
+  }), section === "progression" && /*#__PURE__*/React.createElement(PlayProgressionSection, {
+    homeAttacksLeft: homeAttacksLeft,
+    setHomeAttacksLeft: setHomeAttacksLeft
+  }), section === "saved" && /*#__PURE__*/React.createElement(SavedMatchesSection, null), section === "season" && /*#__PURE__*/React.createElement(SeasonStatsSection, {
     homeTeam: homeTeam
   })));
 }
@@ -9057,7 +9060,7 @@ function JerseyEditor({
 const DEFAULT_CONDITIONS = [{
   id: "conv",
   label: "Shot Conversion",
-  target: 55,
+  target: 65,
   unit: "%",
   trend: "higher",
   category: "Shooting"
@@ -9071,35 +9074,35 @@ const DEFAULT_CONDITIONS = [{
 }, {
   id: "prod",
   label: "Productivity",
-  target: 5.5,
+  target: 6,
   unit: "",
   trend: "higher",
   category: "Shooting"
 }, {
   id: "poss",
   label: "Possession Share",
-  target: 50,
+  target: 55,
   unit: "%",
   trend: "higher",
   category: "Possession"
 }, {
   id: "toNet",
   label: "T/O Net (Won-Lost)",
-  target: 0,
+  target: 5,
   unit: "",
   trend: "higher",
   category: "Defensive"
 }, {
   id: "koOwn",
   label: "Own KO Retention",
-  target: 60,
+  target: 70,
   unit: "%",
   trend: "higher",
   category: "Kickouts"
 }, {
   id: "koOpp",
   label: "Opp KO Disruption",
-  target: 40,
+  target: 45,
   unit: "%",
   trend: "higher",
   category: "Kickouts"
@@ -9343,7 +9346,10 @@ const mockActual = id => {
 };
 
 // ─── Play Progression ────────────────────────────────────────────────
-function PlayProgressionSection() {
+function PlayProgressionSection({
+  homeAttacksLeft,
+  setHomeAttacksLeft
+}) {
   const [config, setConfig] = useState({
     halfMin: 30,
     etEnabled: true,
