@@ -768,6 +768,12 @@ const SHOT_OUTCOMES = [{
   scoring: false,
   goalAttempt: true
 }, {
+  id: "saved45",
+  label: "Saved for 45",
+  pts: 0,
+  scoring: false,
+  goalAttempt: true
+}, {
   id: "45",
   label: "45'",
   pts: 0,
@@ -7090,13 +7096,15 @@ function ActionsTab({
     key: e.id,
     event: e,
     homeTeam: homeTeam,
-    awayTeam: awayTeam
+    awayTeam: awayTeam,
+    onEdit: onEditEvent
   })))))));
 }
 function MiniEventRow({
   event: e,
   homeTeam,
-  awayTeam
+  awayTeam,
+  onEdit
 }) {
   var _SHOT_OUTCOMES$find4;
   if (e.type === "half") return null;
@@ -7112,8 +7120,10 @@ function MiniEventRow({
   return /*#__PURE__*/React.createElement("div", {
     className: "evrow",
     style: {
-      gridTemplateColumns: "56px 16px 1fr auto"
-    }
+      gridTemplateColumns: "56px 16px 1fr auto",
+      cursor: onEdit ? "pointer" : "default"
+    },
+    onClick: () => onEdit && onEdit(e)
   }, /*#__PURE__*/React.createElement("span", {
     className: "ev-time"
   }, fmt(e.time)), /*#__PURE__*/React.createElement("span", {
@@ -7135,7 +7145,22 @@ function MiniEventRow({
       color: "var(--t2)",
       marginLeft: 6
     }
-  }, "\xB7 ", p.name)));
+  }, "\xB7 ", p.name)), onEdit && /*#__PURE__*/React.createElement("button", {
+    style: {
+      padding: "4px 8px",
+      color: "var(--t3)",
+      background: "none",
+      border: "none",
+      cursor: "pointer"
+    },
+    onClick: ev => {
+      ev.stopPropagation();
+      onEdit(e);
+    }
+  }, /*#__PURE__*/React.createElement(Icon, {
+    name: "edit",
+    size: 13
+  })));
 }
 
 // ─── Action Modal ────────────────────────────────────────────────────
