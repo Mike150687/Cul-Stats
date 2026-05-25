@@ -2951,16 +2951,12 @@ const QCOLS = [{
 }];
 const HEAVY = new Set(["h1", "h2", "tot"]);
 
-// Get the quarter bucket for an event (relative to half start)
-function getQuarter(e, h1Start = 0, h2Start = 1020) {
-  if (e.half === 1) {
-    const t = e.time - h1Start;
-    return t < QCUT ? "q1" : "q2";
-  }
-  if (e.half === 2) {
-    const t = e.time - h2Start;
-    return t < QCUT ? "q3" : "q4";
-  }
+// Get the quarter bucket for an event.
+// e.time is always relative to the START of the half (resets to 0 at H2),
+// so we compare directly against QCUT — no offset needed.
+function getQuarter(e) {
+  if (e.half === 1) return e.time < QCUT ? "q1" : "q2";
+  if (e.half === 2) return e.time < QCUT ? "q3" : "q4";
   return null;
 }
 function getHalfId(e) {
@@ -3054,7 +3050,7 @@ function quartAggregate(events, teamId, homeAttacksLeft) {
   // For shots from opp kickout — we need to identify shots in our possessions that came from winning an opp KO
   // For our simplified state machine: origin="kickout" means starts after a kickout. But which team's KO?
   // Look up the most recent kickout event before poss start.
-  const kickouts = events.filter(e => e.type === "kickout");
+  const kickouts = events_.filter(e => e.type === "kickout");
   const findRecentKO = t => [...kickouts].reverse().find(k => k.time <= t);
   poss.forEach(p => {
     if (p.origin === "kickout") {
@@ -3086,17 +3082,19 @@ function quartAggregate(events, teamId, homeAttacksLeft) {
   const toScores = mkScoreOrigin("turnover");
   const cleanScores = mkScoreOrigin("open");
 
-  // Turnovers
-  const toWon = events.filter(e => e.type === "turnover" && (e.team === teamId && e.result === "won" || e.team === opp && e.result === "lost"));
-  const toLost = evs.filter(e => e.type === "turnover" && (e.team === teamId && e.result === "lost" || e.team === opp && e.result === "won"));
+  // Turnovers — use events_ so ignored events are excluded
+  const toWon = events_.filter(e => e.type === "turnover" && (e.team === teamId && e.result === "won" || e.team === opp && e.result === "lost"));
+  const toLost = events_.filter(e => e.type === "turnover" && (e.team === teamId && e.result === "lost" || e.team === opp && e.result === "won"));
   const toWonQ = bucketize(toWon);
   const toLostQ = bucketize(toLost);
-  // own half / opp half (simplified: x position relative to attacking direction)
-  // For home attacking right: own half x<50, opp half x>=50
+  // own half / opp half — use halDir stamped on the event (accounts for H2 end-swap)
+  // attacksLeft=true  → team defends the RIGHT side → own half is x ≥ 50
+  // attacksLeft=false → team defends the LEFT side  → own half is x < 50
   const inOwnHalf = e => {
     if (!e.loc) return false;
-    const attacksRight = e.team === teamId; // T/O won by our team
-    return attacksRight ? e.loc.x < 50 : e.loc.x >= 50;
+    const halDir = e.halDir !== undefined ? e.halDir : homeAttacksLeft;
+    const attacksLeft = teamId === "home" ? halDir : !halDir;
+    return attacksLeft ? e.loc.x >= 50 : e.loc.x < 50;
   };
   const toWonOwn = bucketize(toWon.filter(inOwnHalf));
   const toWonOpp = bucketize(toWon.filter(e => !inOwnHalf(e)));
@@ -3118,7 +3116,7 @@ function quartAggregate(events, teamId, homeAttacksLeft) {
   const toForcedL = bucketize(toLost.filter(e => e.method === "tackle"));
 
   // Kickouts (own)
-  const kos = events.filter(e => e.type === "kickout" && e.team === teamId);
+  const kos = events_.filter(e => e.type === "kickout" && e.team === teamId);
   const koShort = kos.filter(k => kickoutLength(k, homeAttacksLeft) === "short");
   const koLong = kos.filter(k => kickoutLength(k, homeAttacksLeft) === "long");
   const koShortQ = bucketize(koShort);
@@ -3150,7 +3148,7 @@ function quartAggregate(events, teamId, homeAttacksLeft) {
   // type2 records the WINNING team's catch:
   //   own KO won  → event.team===teamId && result==="won" → type2 = our catch
   //   opp KO won  → event.team===opp     && result==="lost" → type2 = our catch
-  const oppKos = events.filter(e => e.type === "kickout" && e.team === opp);
+  const oppKos = events_.filter(e => e.type === "kickout" && e.team === opp);
   const ownKOWonClean = bucketize(kos.filter(k => k.result === "won" && k.type2 === "clean"));
   const ownKOWonBreak = bucketize(kos.filter(k => k.result === "won" && k.type2 === "break"));
   const oppKOWonClean = bucketize(oppKos.filter(k => k.result === "lost" && k.type2 === "clean"));
@@ -7396,12 +7394,15 @@ function ActionModal({
   }))));
 }
 function nextStepFor(a) {
+  // Placed-ball sources are always uncontested — skip the pressure step.
+  const PLACED_SOURCES = new Set(["free", "2free", "mark", "45m", "penalty", "side"]);
+  const isPlaced = PLACED_SOURCES.has(a.source);
   if (a.type === "shot") {
     if (a.step === "team") return "source";
     if (a.step === "source") return "player";
     if (a.step === "player") return "location";
-    if (a.step === "location") return a.outcome ? "pressure" : "outcome";
-    if (a.step === "outcome") return "pressure";
+    if (a.step === "location") return a.outcome ? isPlaced ? "__done" : "pressure" : "outcome";
+    if (a.step === "outcome") return isPlaced ? "__done" : "pressure";
     if (a.step === "pressure") return "__done";
   }
   if (a.type === "turnover") {
@@ -7513,13 +7514,17 @@ function ActionModalBody({
   if (step === "player" || step === "off" || step === "on" || step === "target") {
     const sortedPlayers = [...team.players].sort((a, b) => (a.pos ?? 99) - (b.pos ?? 99));
     const starting = sortedPlayers.filter(p => p.pos);
-    const bench = sortedPlayers.filter(p => !p.pos);
+    const bench = sortedPlayers.filter(p => !p.pos && p.isSub);
+
+    // For subs: "off" only shows on-field players; "on" only shows bench players
+    const showStarting = step !== "on";
+    const showBench = step !== "off";
     const key = step === "off" ? "off" : step === "on" ? "on" : step === "target" ? "target" : "player";
-    return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    return /*#__PURE__*/React.createElement("div", null, showStarting && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
       className: "sec"
     }, /*#__PURE__*/React.createElement("div", {
       className: "sec-t"
-    }, step === "off" ? "Off the pitch" : step === "on" ? "On the pitch" : step === "target" ? "Receiver" : "Starting 15"), /*#__PURE__*/React.createElement("div", {
+    }, step === "off" ? "Select player going off" : "Starting / On field"), /*#__PURE__*/React.createElement("div", {
       className: "sec-rule"
     })), /*#__PURE__*/React.createElement("div", {
       style: {
@@ -7560,11 +7565,11 @@ function ActionModalBody({
       }, (_POSITIONS$find2 = POSITIONS.find(x => x.num === p.pos)) == null ? void 0 : _POSITIONS$find2.short), /*#__PURE__*/React.createElement("span", {
         className: "lab"
       }, p.name));
-    })), bench.length > 0 && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+    }))), showBench && bench.length > 0 && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
       className: "sec"
     }, /*#__PURE__*/React.createElement("div", {
       className: "sec-t"
-    }, "Bench"), /*#__PURE__*/React.createElement("div", {
+    }, step === "on" ? "Select player coming on" : "Bench"), /*#__PURE__*/React.createElement("div", {
       className: "sec-rule"
     })), /*#__PURE__*/React.createElement("div", {
       style: {
@@ -11419,16 +11424,45 @@ function App() {
     // H1: use homeAttacksLeft directly.
     // H2: teams swap ends, so the direction flips.
     const halDir = half === 2 ? !homeAttacksLeft : homeAttacksLeft;
-    const ev = {
+    const PLACED_SOURCES = new Set(["free", "2free", "mark", "45m", "penalty", "side"]);
+    const evBase = {
       ...a,
       id: `ev-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       time: seconds,
       half,
       halDir
     };
+    // Placed-ball shots are always uncontested
+    if (a.type === "shot" && PLACED_SOURCES.has(a.source)) evBase.pressure = false;
+    const ev = evBase;
     delete ev.step;
     setEvents(es => [...es, ev]);
     setLastUndo(ev);
+
+    // ── Substitution: player coming ON takes the position of player going OFF.
+    // Player going OFF loses their position and moves to bench (isSub:true).
+    if (a.type === "sub" && a.off && a.on) {
+      const applyToTeam = (team, setter) => {
+        const offPlayer = team.players.find(p => p.id === a.off);
+        const offPos = (offPlayer == null ? void 0 : offPlayer.pos) ?? null;
+        setter({
+          ...team,
+          players: team.players.map(p => {
+            if (p.id === a.off) return {
+              ...p,
+              pos: null,
+              isSub: true
+            }; // leaves field
+            if (p.id === a.on) return {
+              ...p,
+              pos: offPos
+            }; // takes their spot
+            return p;
+          })
+        });
+      };
+      if (a.team === "home") applyToTeam(homeTeam, setHomeTeam);else applyToTeam(awayTeam, setAwayTeam);
+    }
   };
   const handleUpdateEvent = updated => {
     setEvents(es => es.map(e => e.id === updated.id ? updated : e));
