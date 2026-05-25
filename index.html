@@ -2362,7 +2362,8 @@ function LiveStatsTab({
   awayTeam,
   seconds,
   half,
-  halfLength
+  halfLength,
+  conditions
 }) {
   const h = aggregateStats(events, "home");
   const a = aggregateStats(events, "away");
@@ -2371,7 +2372,12 @@ function LiveStatsTab({
 
   // headline comparison rows
   const rows = [["Shots", h.shots, a.shots, true], ["Scores", h.scores, a.scores, true], ["Conv %", `${h.conv}%`, `${a.conv}%`, true], ["Shot Rate", `${h.shotRate}%`, `${a.shotRate}%`, true], ["Possessions", h.possessions, a.possessions, true], ["Avg Poss (s)", `${h.avgPossSec}s`, `${a.avgPossSec}s`, null], ["BIP Time", fmtBIP(h.bip), fmtBIP(a.bip), null], ["Productivity", `${h.productivity}`, `${a.productivity}`, true], ["Expected Pts", h.xP.toFixed(1), a.xP.toFixed(1), true], ["xP +/-", `${h.xPDelta >= 0 ? "+" : ""}${h.xPDelta.toFixed(1)}`, `${a.xPDelta >= 0 ? "+" : ""}${a.xPDelta.toFixed(1)}`, true], ["SQI", h.sqi, a.sqi, true], ["Attack Speed", `${h.avgAttackSpeed}s`, `${a.avgAttackSpeed}s`, false], ["Wides", h.wides, a.wides, false], ["Off Post", h.posts, a.posts, false], ["Blocked", h.blocks, a.blocks, false], ["T/O Won", h.toWon, a.toWon, true], ["T/O Lost", h.toLost, a.toLost, false], ["Kickouts", `${h.kosWon}/${h.kos}`, `${a.kosWon}/${a.kos}`, null], ["KO Win %", `${h.kosPct}%`, `${a.kosPct}%`, true], ["Fouls", h.fouls, a.fouls, false], ["Cards", h.cards, a.cards, false]];
-  return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+  return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement(WinConditionsBar, {
+    conditions: conditions,
+    events: events,
+    homeTeam: homeTeam,
+    awayTeam: awayTeam
+  }), /*#__PURE__*/React.createElement("div", {
     className: "card",
     style: {
       marginBottom: 14
@@ -2873,7 +2879,233 @@ function LiveStatsTab({
     }
   }, s.uConv ?? "–", "%"), /*#__PURE__*/React.createElement("div", {
     className: "kpi-s"
-  }, s.uncontested, " shots")))))));
+  }, s.uncontested, " shots"))))))), /*#__PURE__*/React.createElement(MomentumChart, {
+    events: events,
+    homeTeam: homeTeam,
+    awayTeam: awayTeam,
+    halfLength: halfLength
+  }));
+}
+
+// ─── Win Conditions Live Bar ──────────────────────────────────────────
+function WinConditionsBar({
+  conditions,
+  events,
+  homeTeam,
+  awayTeam
+}) {
+  if (!conditions || !conditions.length) return null;
+  const h = aggregateStats(events, "home");
+  const a = aggregateStats(events, "away");
+  const oppKosTotal = events.filter(e => !e.ignored && e.type === "kickout" && e.team === "away").length;
+  const oppKosDisrupted = events.filter(e => !e.ignored && e.type === "kickout" && e.team === "away" && e.result === "lost").length;
+  const actual = {
+    conv: h.conv,
+    shotRate: h.shotRate,
+    prod: parseFloat(h.productivity) || 0,
+    poss: h.possPct,
+    toNet: h.toWon - h.toLost,
+    goalsConc: scoreOf(events, "away").g,
+    koOwn: h.kosPct,
+    koOpp: oppKosTotal ? Math.round(oppKosDisrupted / oppKosTotal * 100) : 0,
+    foulsAgst: h.fouls
+  };
+  const shown = conditions.filter(c => actual[c.id] !== undefined);
+  if (!shown.length) return null;
+  return /*#__PURE__*/React.createElement("div", {
+    className: "card",
+    style: {
+      marginBottom: 14
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "card-h"
+  }, /*#__PURE__*/React.createElement("h3", null, "Game Plan Targets"), /*#__PURE__*/React.createElement("span", {
+    className: "sec-aux"
+  }, homeTeam.name, " \xB7 live vs target")), /*#__PURE__*/React.createElement("div", {
+    className: "card-b",
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      gap: 8
+    }
+  }, shown.map(c => {
+    const val = actual[c.id];
+    const tgt = c.target;
+    const higher = c.trend === "higher";
+    const met = higher ? val >= tgt : val <= tgt;
+    const pct = higher ? Math.min(100, tgt > 0 ? Math.round(val / tgt * 100) : 100) : Math.min(100, val > 0 ? Math.round(tgt / val * 100) : 100);
+    const barCol = met ? "var(--score)" : val > 0 ? "var(--gold)" : "var(--bg-3)";
+    return /*#__PURE__*/React.createElement("div", {
+      key: c.id
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        justifyContent: "space-between",
+        marginBottom: 3
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontFamily: "var(--fm)",
+        fontSize: 11,
+        color: "var(--t2)"
+      }
+    }, c.label), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontFamily: "var(--fm)",
+        fontSize: 11,
+        fontWeight: 600,
+        color: met ? "var(--score)" : "var(--away)"
+      }
+    }, val, c.unit, " ", /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontWeight: 400,
+        color: "var(--t3)",
+        fontSize: 10
+      }
+    }, "/ ", tgt, c.unit))), /*#__PURE__*/React.createElement("div", {
+      style: {
+        height: 6,
+        borderRadius: 3,
+        background: "var(--bg-3)",
+        overflow: "hidden"
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        width: `${pct}%`,
+        height: "100%",
+        background: barCol,
+        borderRadius: 3,
+        transition: "width .4s ease"
+      }
+    })));
+  })));
+}
+
+// ─── Momentum Chart ───────────────────────────────────────────────────
+function MomentumChart({
+  events,
+  homeTeam,
+  awayTeam,
+  halfLength
+}) {
+  const halfSecs = (halfLength || 30) * 60;
+  const scores = events.filter(e => !e.ignored && e.type === "shot" && ["goal", "point", "2point"].includes(e.outcome)).sort((a, b) => (a.half || 1) - (b.half || 1) || a.time - b.time);
+  if (!scores.length) return null;
+  let hPts = 0,
+    aPts = 0;
+  const pts = [{
+    t: 0,
+    diff: 0
+  }];
+  scores.forEach(e => {
+    const p = e.outcome === "goal" ? 3 : e.outcome === "2point" ? 2 : 1;
+    const t = ((e.half || 1) - 1) * halfSecs + (e.time || 0);
+    if (e.team === "home") hPts += p;else aPts += p;
+    pts.push({
+      t,
+      diff: hPts - aPts,
+      team: e.team,
+      outcome: e.outcome
+    });
+  });
+  const maxT = 2 * halfSecs;
+  const diffs = pts.map(p => p.diff);
+  const maxD = Math.max(Math.abs(Math.min(...diffs)), Math.abs(Math.max(...diffs)), 3);
+  const W = 560,
+    H = 130,
+    PL = 28,
+    PR = 12,
+    PT = 18,
+    PB = 26;
+  const pw = W - PL - PR,
+    ph = H - PT - PB;
+  const tx = t => PL + t / maxT * pw;
+  const ty = d => PT + ph / 2 - d / maxD * (ph / 2) * 0.88;
+  const zY = ty(0),
+    htX = tx(halfSecs);
+  const poly = pts.map(p => `${tx(p.t).toFixed(1)},${ty(p.diff).toFixed(1)}`).join(" ");
+  return /*#__PURE__*/React.createElement("div", {
+    className: "card",
+    style: {
+      marginTop: 14
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "card-h"
+  }, /*#__PURE__*/React.createElement("h3", null, "Scoring Momentum"), /*#__PURE__*/React.createElement("span", {
+    className: "sec-aux"
+  }, homeTeam.name, " above \xB7 ", awayTeam.name, " below")), /*#__PURE__*/React.createElement("div", {
+    className: "card-b",
+    style: {
+      paddingLeft: 4,
+      paddingRight: 4
+    }
+  }, /*#__PURE__*/React.createElement("svg", {
+    viewBox: `0 0 ${W} ${H}`,
+    style: {
+      width: "100%",
+      display: "block"
+    }
+  }, /*#__PURE__*/React.createElement("line", {
+    x1: PL,
+    y1: zY,
+    x2: PL + pw,
+    y2: zY,
+    stroke: "var(--wire2)",
+    strokeWidth: "1",
+    strokeDasharray: "3,3"
+  }), /*#__PURE__*/React.createElement("line", {
+    x1: htX,
+    y1: PT,
+    x2: htX,
+    y2: PT + ph,
+    stroke: "var(--wire2)",
+    strokeWidth: "1",
+    strokeDasharray: "4,2"
+  }), /*#__PURE__*/React.createElement("text", {
+    x: htX + 3,
+    y: PT + 10,
+    fill: "var(--t3)",
+    fontSize: "9",
+    fontFamily: "var(--fm)"
+  }, "HT"), pts.slice(1).map((p, i) => {
+    const x0 = tx(pts[i].t),
+      x1 = tx(p.t),
+      y0 = ty(pts[i].diff),
+      y1 = ty(p.diff);
+    const col = p.diff > pts[i].diff ? "var(--score)" : p.diff < pts[i].diff ? "var(--away)" : "var(--t3)";
+    return /*#__PURE__*/React.createElement("line", {
+      key: i,
+      x1: x0,
+      y1: y0,
+      x2: x1,
+      y2: y1,
+      stroke: col,
+      strokeWidth: "2.5",
+      strokeLinejoin: "round"
+    });
+  }), pts.slice(1).map((p, i) => /*#__PURE__*/React.createElement("circle", {
+    key: i,
+    cx: tx(p.t),
+    cy: ty(p.diff),
+    r: "3.5",
+    fill: p.team === "home" ? "var(--score)" : "var(--away)"
+  })), [-maxD, 0, maxD].map(d => /*#__PURE__*/React.createElement("text", {
+    key: d,
+    x: PL - 4,
+    y: ty(d) + 4,
+    textAnchor: "end",
+    fill: "var(--t3)",
+    fontSize: "9",
+    fontFamily: "var(--fm)"
+  }, d > 0 ? "+" + d : d)), [0, .25, .5, .75, 1].map((f, i) => /*#__PURE__*/React.createElement("text", {
+    key: i,
+    x: PL + f * pw,
+    y: H - 6,
+    textAnchor: "middle",
+    fill: "var(--t3)",
+    fontSize: "9",
+    fontFamily: "var(--fm)"
+  }, Math.round(f * maxT / 60), "'")))));
 }
 
 // ─── Possession Strip — last 8 possessions visualised ────────────────
@@ -3411,6 +3643,32 @@ function Note({
   }, "Target: ", text);
 }
 
+// ─── Shot Quality by Sector helper ──────────────────────────────────
+function computeSectorStats(shotList, teamId, homeAttacksLeft) {
+  const stats = {};
+  for (let s = 1; s <= 12; s++) stats[s] = {
+    count: 0,
+    xpSum: 0,
+    pts: 0
+  };
+  shotList.forEach(s => {
+    var _SHOT_OUTCOMES$find2;
+    if (!s.loc) return;
+    const halDir = s.halDir !== undefined ? s.halDir : homeAttacksLeft;
+    const attacksLeft = teamId === "home" ? halDir : !halDir;
+    const normalX = attacksLeft ? s.loc.x : 100 - s.loc.x;
+    const isGA = ((_SHOT_OUTCOMES$find2 = SHOT_OUTCOMES.find(o => o.id === s.outcome)) == null ? void 0 : _SHOT_OUTCOMES$find2.goalAttempt) || false;
+    const is2pt = ["2play", "2free"].includes(s.source) || s.outcome === "2point";
+    const is45m = s.source === "45m";
+    const isPl = ["free", "2free", "mark", "45m", "penalty", "side"].includes(s.source);
+    const sec = shotSector(normalX, s.loc.y, isGA, is2pt, is45m, isPl, attacksLeft);
+    stats[sec].count++;
+    stats[sec].xpSum += shotXP(s);
+    stats[sec].pts += actualPts(s.outcome);
+  });
+  return stats;
+}
+
 // ─── Main DetailedStatsTab ───────────────────────────────────────────
 function DetailedStatsTab({
   events,
@@ -3515,7 +3773,7 @@ function DetailedStatsTab({
       p = pQ[c.id] || 0;
     return g === 0 && t === 0 && p === 0 ? "–" : `${g}-${t}-${p}`;
   });
-  const SECTS = ["Shooting & Possession", "Turnovers", "Kickouts", "KO Win Type", "Expected Points", "Attack Speed", "Defensive T/O Zones", "Shooting Clock", "Consecutive Scoreless", "SQI", "Scoring Runs", "Half vs Half", "Productivity", "KO Targets", "Individual Performance"];
+  const SECTS = ["Shooting & Possession", "Turnovers", "Kickouts", "KO Win Type", "Expected Points", "Attack Speed", "Defensive T/O Zones", "Shooting Clock", "Consecutive Scoreless", "SQI", "Scoring Runs", "Half vs Half", "Productivity", "KO Targets", "Shot Quality by Zone", "Kickout Target Zones", "Individual Performance"];
   return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
@@ -4173,8 +4431,8 @@ function XPTypeBreakdown({
   // Group by source × isGoalAttempt
   const groups = [["play", false, "Open play point"], ["play", true, "Open play goal"], ["2play", false, "2-pt from play"], ["free", false, "Free (point)"], ["free", true, "Free (goal)"], ["2free", false, "2-pt free"], ["mark", false, "Mark"], ["45m", false, "From 45"], ["penalty", true, "Penalty"]].map(([src, isGA, label]) => {
     const sh = shots.filter(s => {
-      var _SHOT_OUTCOMES$find2;
-      const goalAttempt = ((_SHOT_OUTCOMES$find2 = SHOT_OUTCOMES.find(o => o.id === s.outcome)) == null ? void 0 : _SHOT_OUTCOMES$find2.goalAttempt) || false;
+      var _SHOT_OUTCOMES$find3;
+      const goalAttempt = ((_SHOT_OUTCOMES$find3 = SHOT_OUTCOMES.find(o => o.id === s.outcome)) == null ? void 0 : _SHOT_OUTCOMES$find3.goalAttempt) || false;
       return s.source === src && (isGA ? goalAttempt : !goalAttempt);
     });
     const xp = sh.reduce((sum, e) => sum + shotXP(e), 0);
@@ -4756,6 +5014,44 @@ function DetailedSectionsB({
     showH: showH,
     showA: showA
   })), /*#__PURE__*/React.createElement(Sect, {
+    title: "Shot Quality by Zone",
+    open: !isCol("Shot Quality by Zone"),
+    onToggle: () => toggleSection("Shot Quality by Zone")
+  }), !isCol("Shot Quality by Zone") && /*#__PURE__*/React.createElement("div", {
+    className: "card",
+    style: {
+      borderTopLeftRadius: 0,
+      borderTopRightRadius: 0,
+      marginTop: -1,
+      padding: 14
+    }
+  }, /*#__PURE__*/React.createElement(ShotQualityZones, {
+    events: events,
+    homeTeam: homeTeam,
+    awayTeam: awayTeam,
+    showH: showH,
+    showA: showA,
+    homeAttacksLeft: homeAttacksLeft
+  })), /*#__PURE__*/React.createElement(Sect, {
+    title: "Kickout Target Zones",
+    open: !isCol("Kickout Target Zones"),
+    onToggle: () => toggleSection("Kickout Target Zones")
+  }), !isCol("Kickout Target Zones") && /*#__PURE__*/React.createElement("div", {
+    className: "card",
+    style: {
+      borderTopLeftRadius: 0,
+      borderTopRightRadius: 0,
+      marginTop: -1,
+      padding: 14
+    }
+  }, /*#__PURE__*/React.createElement(KickoutTargetZones, {
+    events: events,
+    homeTeam: homeTeam,
+    awayTeam: awayTeam,
+    showH: showH,
+    showA: showA,
+    homeAttacksLeft: homeAttacksLeft
+  })), /*#__PURE__*/React.createElement(Sect, {
     title: "Individual Performance",
     open: !isCol("Individual Performance"),
     onToggle: () => toggleSection("Individual Performance")
@@ -4789,9 +5085,9 @@ function ShootingClock({
     const sm = {};
     st.poss.forEach(p => {
       p.events.filter(e => e.type === "shot" && e.loc).forEach(s => {
-        var _SHOT_OUTCOMES$find3;
+        var _SHOT_OUTCOMES$find4;
         const ttp = Math.max(0, s.time - p.startTime);
-        const isGA = (_SHOT_OUTCOMES$find3 = SHOT_OUTCOMES.find(o => o.id === s.outcome)) == null ? void 0 : _SHOT_OUTCOMES$find3.goalAttempt;
+        const isGA = (_SHOT_OUTCOMES$find4 = SHOT_OUTCOMES.find(o => o.id === s.outcome)) == null ? void 0 : _SHOT_OUTCOMES$find4.goalAttempt;
         const is2 = s.outcome === "2point" || s.source === "2play" || s.source === "2free";
         const is45 = s.source === "45m";
         const isPl = ["free", "mark"].includes(s.source);
@@ -5873,6 +6169,325 @@ function IndividualPerformance({
     },
     onClick: () => exportPlayerReport(p, tid, nm, rows, events, accent)
   }, "\uD83D\uDCC4 #", p.num, " ", p.name))))));
+}
+
+// ─── Shot Quality by Zone ─────────────────────────────────────────────
+function ShotQualityZones({
+  events,
+  homeTeam,
+  awayTeam,
+  showH,
+  showA,
+  homeAttacksLeft
+}) {
+  const ZONES = [{
+    label: "Beyond 45m",
+    sectors: [1, 2, 3],
+    accent: "var(--home)"
+  }, {
+    label: "20m–45m 2pt",
+    sectors: [4, 5, 6],
+    accent: "#2a9d8f"
+  }, {
+    label: "20m–45m 1pt",
+    sectors: [7, 8, 9],
+    accent: "var(--gold)"
+  }, {
+    label: "Inside 20m",
+    sectors: [10, 11, 12],
+    accent: "var(--away)"
+  }];
+  const render = (teamId, team, accent) => {
+    const shots = events.filter(e => !e.ignored && e.type === "shot" && e.team === teamId && e.loc);
+    const ss = computeSectorStats(shots, teamId, homeAttacksLeft);
+    return /*#__PURE__*/React.createElement("div", {
+      style: {
+        marginBottom: 14
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontFamily: "var(--fd)",
+        fontSize: 11,
+        fontWeight: 700,
+        color: accent,
+        letterSpacing: "0.08em",
+        textTransform: "uppercase",
+        marginBottom: 6
+      }
+    }, team.name), /*#__PURE__*/React.createElement("div", {
+      style: {
+        overflowX: "auto"
+      }
+    }, /*#__PURE__*/React.createElement("table", {
+      style: {
+        width: "100%",
+        borderCollapse: "collapse",
+        minWidth: 340
+      }
+    }, /*#__PURE__*/React.createElement("thead", null, /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("th", {
+      style: {
+        fontFamily: "var(--fCond)",
+        fontSize: 10,
+        color: "var(--t3)",
+        letterSpacing: "0.08em",
+        textAlign: "left",
+        padding: "4px 8px",
+        textTransform: "uppercase"
+      }
+    }, "Zone"), ["R", "M", "L"].map(lat => /*#__PURE__*/React.createElement("th", {
+      key: lat,
+      style: {
+        fontFamily: "var(--fm)",
+        fontSize: 11,
+        color: "var(--t3)",
+        textAlign: "center",
+        padding: "4px 6px",
+        width: 80
+      }
+    }, lat)))), /*#__PURE__*/React.createElement("tbody", null, ZONES.map((z, zi) => /*#__PURE__*/React.createElement("tr", {
+      key: zi
+    }, /*#__PURE__*/React.createElement("td", {
+      style: {
+        fontFamily: "var(--fm)",
+        fontSize: 11,
+        color: z.accent,
+        fontWeight: 600,
+        padding: "5px 8px",
+        whiteSpace: "nowrap"
+      }
+    }, z.label), z.sectors.map(sec => {
+      const d = ss[sec];
+      const sqi = d.count ? +(d.xpSum / d.count).toFixed(3) : null;
+      const conv = d.count ? Math.round(d.pts / d.count * 100) : null;
+      const delta = d.count ? +(d.pts - d.xpSum).toFixed(2) : null;
+      return /*#__PURE__*/React.createElement("td", {
+        key: sec,
+        style: {
+          padding: "5px 6px",
+          textAlign: "center",
+          background: d.count > 0 ? "var(--bg-2)" : "transparent",
+          borderRadius: 4,
+          border: "1px solid var(--line-soft)"
+        }
+      }, d.count === 0 ? /*#__PURE__*/React.createElement("span", {
+        style: {
+          color: "var(--t4)",
+          fontSize: 10
+        }
+      }, "\u2014") : /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+        style: {
+          fontFamily: "var(--fd)",
+          fontSize: 11,
+          fontWeight: 700,
+          color: "var(--t1)"
+        }
+      }, d.count, " shot", d.count !== 1 ? "s" : ""), /*#__PURE__*/React.createElement("div", {
+        style: {
+          fontFamily: "var(--fm)",
+          fontSize: 10,
+          color: "var(--gold)"
+        }
+      }, "SQI ", sqi), /*#__PURE__*/React.createElement("div", {
+        style: {
+          fontFamily: "var(--fm)",
+          fontSize: 10,
+          color: "var(--t2)"
+        }
+      }, "Conv ", conv, "%"), /*#__PURE__*/React.createElement("div", {
+        style: {
+          fontFamily: "var(--fm)",
+          fontSize: 10,
+          color: delta >= 0 ? "var(--score)" : "var(--away)"
+        }
+      }, delta >= 0 ? "+" : "", delta, " xP\u0394")));
+    })))))));
+  };
+  return /*#__PURE__*/React.createElement("div", null, showH && render("home", homeTeam, "var(--home)"), showA && render("away", awayTeam, "var(--away)"));
+}
+
+// ─── Kickout Target Zones ─────────────────────────────────────────────
+// Shows a 2×3 grid (Short/Long × Left/Middle/Right) with win rates per zone
+function KickoutTargetZones({
+  events,
+  homeTeam,
+  awayTeam,
+  showH,
+  showA,
+  homeAttacksLeft
+}) {
+  const render = (teamId, team, accent) => {
+    const kos = events.filter(e => !e.ignored && e.type === "kickout" && e.team === teamId && e.loc);
+    // Normalize landing x to distance from own goal (0=at goal, 100=far end)
+    const norm = e => {
+      const halDir = e.halDir !== undefined ? e.halDir : homeAttacksLeft;
+      const defenLeft = teamId === "home" ? halDir : !halDir; // defends left side when attacksLeft
+      const goalX = defenLeft ? 0 : 100;
+      return Math.abs(e.loc.x - goalX);
+    };
+    // Lateral: y ≤30=top(L), 30-70=mid(M), >70=bot(R) — but flip for attacking left
+    const lat = e => {
+      const halDir = e.halDir !== undefined ? e.halDir : homeAttacksLeft;
+      const attacksLeft = teamId === "home" ? halDir : !halDir;
+      const y = e.loc.y;
+      if (attacksLeft) {
+        return y <= 30 ? "R" : y <= 70 ? "M" : "L";
+      }
+      return y <= 30 ? "L" : y <= 70 ? "M" : "R";
+    };
+    // Build zone data: rows=Short(0-31)/Long(31+), cols=L/M/R
+    const zones = {
+      short: {
+        L: {
+          t: 0,
+          w: 0
+        },
+        M: {
+          t: 0,
+          w: 0
+        },
+        R: {
+          t: 0,
+          w: 0
+        }
+      },
+      long: {
+        L: {
+          t: 0,
+          w: 0
+        },
+        M: {
+          t: 0,
+          w: 0
+        },
+        R: {
+          t: 0,
+          w: 0
+        }
+      }
+    };
+    kos.forEach(e => {
+      const nX = norm(e);
+      const row = nX < 31 ? "short" : "long";
+      const col = lat(e);
+      zones[row][col].t++;
+      if (e.result === "won") zones[row][col].w++;
+    });
+    const Cell = ({
+      d
+    }) => {
+      if (d.t === 0) return /*#__PURE__*/React.createElement("td", {
+        style: {
+          padding: 6,
+          textAlign: "center",
+          color: "var(--t4)",
+          fontSize: 10
+        }
+      }, "\u2014");
+      const pct = Math.round(d.w / d.t * 100);
+      const col = pct >= 60 ? "var(--score)" : pct >= 40 ? "var(--gold)" : "var(--away)";
+      return /*#__PURE__*/React.createElement("td", {
+        style: {
+          padding: 6,
+          textAlign: "center",
+          background: "var(--bg-2)",
+          border: "1px solid var(--line-soft)",
+          borderRadius: 4
+        }
+      }, /*#__PURE__*/React.createElement("div", {
+        style: {
+          fontFamily: "var(--fd)",
+          fontSize: 15,
+          fontWeight: 700,
+          color: col
+        }
+      }, pct, "%"), /*#__PURE__*/React.createElement("div", {
+        style: {
+          fontFamily: "var(--fm)",
+          fontSize: 10,
+          color: "var(--t3)"
+        }
+      }, d.w, "/", d.t));
+    };
+    return /*#__PURE__*/React.createElement("div", {
+      style: {
+        marginBottom: 14
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontFamily: "var(--fd)",
+        fontSize: 11,
+        fontWeight: 700,
+        color: accent,
+        letterSpacing: "0.08em",
+        textTransform: "uppercase",
+        marginBottom: 6
+      }
+    }, team.name, " kickouts"), /*#__PURE__*/React.createElement("table", {
+      style: {
+        width: "100%",
+        borderCollapse: "separate",
+        borderSpacing: 4
+      }
+    }, /*#__PURE__*/React.createElement("thead", null, /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("th", {
+      style: {
+        fontFamily: "var(--fCond)",
+        fontSize: 10,
+        color: "var(--t3)",
+        textAlign: "left",
+        padding: "4px 4px",
+        textTransform: "uppercase",
+        letterSpacing: "0.06em"
+      }
+    }), ["Left", "Middle", "Right"].map(l => /*#__PURE__*/React.createElement("th", {
+      key: l,
+      style: {
+        fontFamily: "var(--fCond)",
+        fontSize: 10,
+        color: "var(--t3)",
+        textAlign: "center",
+        padding: "4px 4px",
+        textTransform: "uppercase"
+      }
+    }, l)))), /*#__PURE__*/React.createElement("tbody", null, /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("td", {
+      style: {
+        fontFamily: "var(--fm)",
+        fontSize: 11,
+        fontWeight: 600,
+        color: "var(--t2)",
+        padding: "6px 4px",
+        whiteSpace: "nowrap"
+      }
+    }, "Short (<45m)"), /*#__PURE__*/React.createElement(Cell, {
+      d: zones.short.L
+    }), /*#__PURE__*/React.createElement(Cell, {
+      d: zones.short.M
+    }), /*#__PURE__*/React.createElement(Cell, {
+      d: zones.short.R
+    })), /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("td", {
+      style: {
+        fontFamily: "var(--fm)",
+        fontSize: 11,
+        fontWeight: 600,
+        color: "var(--t2)",
+        padding: "6px 4px",
+        whiteSpace: "nowrap"
+      }
+    }, "Long (45m+)"), /*#__PURE__*/React.createElement(Cell, {
+      d: zones.long.L
+    }), /*#__PURE__*/React.createElement(Cell, {
+      d: zones.long.M
+    }), /*#__PURE__*/React.createElement(Cell, {
+      d: zones.long.R
+    })))), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontFamily: "var(--fm)",
+        fontSize: 10,
+        color: "var(--t3)",
+        marginTop: 4
+      }
+    }, "Retention % per landing zone \xB7 \uD83D\uDFE2 \u226560% \xB7 \uD83D\uDFE1 40\u201360% \xB7 \uD83D\uDD34 <40%"));
+  };
+  return /*#__PURE__*/React.createElement("div", null, showH && render("home", homeTeam, "var(--home)"), showA && render("away", awayTeam, "var(--away)"));
 }
 
 // ─── Individual Player PDF ────────────────────────────────────────────
@@ -7207,12 +7822,12 @@ function MiniEventRow({
   awayTeam,
   onEdit
 }) {
-  var _SHOT_OUTCOMES$find4;
+  var _SHOT_OUTCOMES$find5;
   if (e.type === "half") return null;
   const t = e.team === "home" ? homeTeam : awayTeam;
   const p = t == null ? void 0 : t.players.find(x => x.id === e.player);
   let label = e.type;
-  if (e.type === "shot") label = ((_SHOT_OUTCOMES$find4 = SHOT_OUTCOMES.find(o => o.id === e.outcome)) == null ? void 0 : _SHOT_OUTCOMES$find4.label) || "Shot";
+  if (e.type === "shot") label = ((_SHOT_OUTCOMES$find5 = SHOT_OUTCOMES.find(o => o.id === e.outcome)) == null ? void 0 : _SHOT_OUTCOMES$find5.label) || "Shot";
   if (e.type === "turnover") label = e.result === "won" ? "T/O Won" : "T/O Lost";
   if (e.type === "kickout") label = e.result === "won" ? "KO Won" : "KO Lost";
   if (e.type === "foul") label = "Foul";
@@ -8069,7 +8684,9 @@ function SetupScreen({
   halfLength,
   setHalfLength,
   homeAttacksLeft,
-  setHomeAttacksLeft
+  setHomeAttacksLeft,
+  conditions,
+  setConditions
 }) {
   const [section, setSection] = useState("teams");
   const SECTIONS = [["teams", "users", "Teams & Squads"], ["jerseys", "shield", "Jerseys & Colours"], ["conditions", "target", "Win Conditions"], ["progression", "play", "Play Progression"], ["saved", "save", "Saved Matches"], ["season", "chart", "Season Stats"]];
@@ -9258,7 +9875,7 @@ function WinConditionsSection({
   homeTeam,
   awayTeam
 }) {
-  const [conds, setConds] = useState(DEFAULT_CONDITIONS);
+  const [conds, setConds] = [conditions, setConditions];
   const cats = [...new Set(conds.map(c => c.category))];
   const updateCond = (id, patch) => setConds(cs => cs.map(c => c.id === id ? {
     ...c,
@@ -10645,9 +11262,9 @@ function AIAnalystModal({
       }).filter(x => x.pts > 0 || x.misses > 0).sort((a, b) => b.pts - a.pts).slice(0, 5);
     };
     const recentShots = events.filter(e => e.type === "shot").slice(-8).map(s => {
-      var _SHOT_OUTCOMES$find5;
+      var _SHOT_OUTCOMES$find6;
       const team = s.team === "home" ? homeTeam.short : awayTeam.short;
-      const out = ((_SHOT_OUTCOMES$find5 = SHOT_OUTCOMES.find(o => o.id === s.outcome)) == null ? void 0 : _SHOT_OUTCOMES$find5.label) || s.outcome;
+      const out = ((_SHOT_OUTCOMES$find6 = SHOT_OUTCOMES.find(o => o.id === s.outcome)) == null ? void 0 : _SHOT_OUTCOMES$find6.label) || s.outcome;
       return `${fmt(s.time)} H${s.half} ${team} ${out} (${s.source}${s.pressure ? ", pressure" : ""})`;
     });
     const scorelessH = consecutiveScoreless(buildPossessions(events), "home");
@@ -11409,6 +12026,7 @@ function App() {
   const [venue, setVenue] = useState("");
   const [halfLength, setHalfLength] = useState(30);
   const [homeAttacksLeft, setHomeAttacksLeft] = useState(true);
+  const [conditions, setConditions] = useState(DEFAULT_CONDITIONS);
 
   // tick clock
   useEffect(() => {
@@ -11803,7 +12421,9 @@ function App() {
       halfLength: halfLength,
       setHalfLength: setHalfLength,
       homeAttacksLeft: homeAttacksLeft,
-      setHomeAttacksLeft: setHomeAttacksLeft
+      setHomeAttacksLeft: setHomeAttacksLeft,
+      conditions: conditions,
+      setConditions: setConditions
     });
   }
   if (screen === "saved") {
@@ -11995,7 +12615,8 @@ function App() {
     awayTeam: awayTeam,
     seconds: seconds,
     half: half,
-    halfLength: halfLength
+    halfLength: halfLength,
+    conditions: conditions
   }), tab === "detailed" && /*#__PURE__*/React.createElement(DetailedStatsTab, {
     events: events,
     homeTeam: homeTeam,
