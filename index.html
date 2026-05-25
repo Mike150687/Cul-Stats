@@ -1083,66 +1083,66 @@ async function exportToXLSX(events, homeTeam, awayTeam) {
 
 const XP_TABLE = {
   //            play    free    gPlay   gFree  f45    pen    side
-  // 1–3  Beyond 45m (all shot types)
+  // 1–3  Beyond 45m (all shot types) — no 45m kicks from here
   1: {
-    play: 0.12,
-    free: 0.32,
+    play: 0.500,
+    free: 0.656,
     gPlay: 0.62,
     gFree: 0.38,
-    f45: 0.40,
+    f45: 0,
     pen: 0,
     side: 0.10
   },
   2: {
-    play: 0.16,
-    free: 0.42,
+    play: 0.542,
+    free: 0.800,
     gPlay: 0.72,
     gFree: 0.38,
-    f45: 0.50,
+    f45: 0,
     pen: 0,
     side: 0
   },
   3: {
-    play: 0.12,
-    free: 0.32,
+    play: 0.500,
+    free: 0.656,
     gPlay: 0.62,
     gFree: 0.38,
-    f45: 0.40,
+    f45: 0,
     pen: 0,
     side: 0.10
   },
-  // 4–6  20m–45m, 2-point attempts  (xP = P(score) × 2 pts)
+  // 4–6  20m–45m, 2-point attempts — 45m kicks land here
   4: {
-    play: 0.36,
-    free: 0.56,
+    play: 0.695,
+    free: 0.995,
     gPlay: 0.90,
     gFree: 0.40,
-    f45: 0,
+    f45: 0.495,
     pen: 0,
     side: 0.24
   },
   5: {
-    play: 0.48,
-    free: 0.70,
+    play: 0.715,
+    free: 1.212,
     gPlay: 1.10,
     gFree: 0.40,
-    f45: 0,
+    f45: 0.606,
     pen: 0,
     side: 0
   },
   6: {
-    play: 0.36,
-    free: 0.56,
+    play: 0.702,
+    free: 0.995,
     gPlay: 0.90,
     gFree: 0.40,
-    f45: 0,
+    f45: 0.495,
     pen: 0,
     side: 0.24
   },
   // 7–9  20m–45m, 1-point attempts
   7: {
-    play: 0.46,
-    free: 0.72,
+    play: 0.472,
+    free: 0.735,
     gPlay: 1.25,
     gFree: 0.40,
     f45: 0,
@@ -1150,8 +1150,8 @@ const XP_TABLE = {
     side: 0.38
   },
   8: {
-    play: 0.58,
-    free: 0.86,
+    play: 0.524,
+    free: 0.849,
     gPlay: 1.42,
     gFree: 0.40,
     f45: 0,
@@ -1159,8 +1159,8 @@ const XP_TABLE = {
     side: 0
   },
   9: {
-    play: 0.46,
-    free: 0.72,
+    play: 0.486,
+    free: 0.749,
     gPlay: 1.25,
     gFree: 0.40,
     f45: 0,
@@ -1169,27 +1169,27 @@ const XP_TABLE = {
   },
   // 10–12  0–20m, close range
   10: {
-    play: 0.62,
-    free: 0.86,
-    gPlay: 1.52,
+    play: 0.500,
+    free: 0.798,
+    gPlay: 1.432,
     gFree: 0.40,
     f45: 0,
     pen: 0,
     side: 0.20
   },
   11: {
-    play: 0.76,
-    free: 0.96,
-    gPlay: 2.08,
+    play: 0.749,
+    free: 0.995,
+    gPlay: 1.432,
     gFree: 0.40,
     f45: 0,
     pen: 2.321,
     side: 0
   },
   12: {
-    play: 0.62,
-    free: 0.86,
-    gPlay: 1.52,
+    play: 0.500,
+    free: 0.798,
+    gPlay: 1.432,
     gFree: 0.40,
     f45: 0,
     pen: 0,
@@ -1250,7 +1250,6 @@ function shotXP(event) {
   if (isGoalAttempt) {
     if (src === "play" || src === "2play") return row.gPlay;
     if (src === "free" || src === "2free" || src === "mark") return row.gFree;
-    if (src === "45m") return row.f45 || row.gFree;
     return row.gPlay;
   }
   if (src === "play" || src === "2play") return row.play;
