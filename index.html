@@ -1298,6 +1298,7 @@ function scoreOf(events, team) {
     p2 = 0,
     p = 0;
   events.forEach(e => {
+    if (e.ignored) return;
     if (e.type !== "shot" || e.team !== team) return;
     if (e.outcome === "goal") g++;else if (e.outcome === "2point") p2++;else if (e.outcome === "point") p++;
   });
@@ -1323,7 +1324,7 @@ const panelPlayers = team => (team.players || []).filter(p => p.pos || p.isSub);
 // BIP time = sum of (next_event_time - this_event_time) within the possession
 // origin: "kickout" | "turnover" | "score_against" | "start"
 function buildPossessions(events) {
-  const sorted = [...events].filter(e => e.team && e.type !== "sub" && e.type !== "card").sort((a, b) => (a.half || 1) - (b.half || 1) || a.time - b.time);
+  const sorted = [...events].filter(e => !e.ignored && e.team && e.type !== "sub" && e.type !== "card").sort((a, b) => (a.half || 1) - (b.half || 1) || a.time - b.time);
 
   // Pre-scan: mark fouls whose next meaningful event is a placed free.
   // Those are dead-ball fouls — the gap between whistle and free is excluded from BIP.
@@ -2158,8 +2159,9 @@ function PitchMarker({
 
 // Aggregations shared by Live + Detail tabs
 function aggregateStats(events, teamId) {
+  const evs = events.filter(e => !e.ignored);
   const opp = teamId === "home" ? "away" : "home";
-  const shots = events.filter(e => e.type === "shot" && e.team === teamId);
+  const shots = evs.filter(e => e.type === "shot" && e.team === teamId);
   const scores = shots.filter(s => ["goal", "point", "2point"].includes(s.outcome));
   const wides = shots.filter(s => s.outcome === "wideG" || s.outcome === "wideP");
   const posts = shots.filter(s => s.outcome === "postG" || s.outcome === "postP");
@@ -2169,11 +2171,11 @@ function aggregateStats(events, teamId) {
   const twos = scores.filter(s => s.outcome === "2point").length;
   const points = scores.filter(s => s.outcome === "point").length;
   const totalPts = goals * 3 + twos * 2 + points;
-  const toWon = events.filter(e => e.type === "turnover" && (e.team === teamId && e.result === "won" || e.team === opp && e.result === "lost")).length;
-  const toLost = events.filter(e => e.type === "turnover" && (e.team === teamId && e.result === "lost" || e.team === opp && e.result === "won")).length;
-  const kos = events.filter(e => e.type === "kickout" && e.team === teamId);
+  const toWon = evs.filter(e => e.type === "turnover" && (e.team === teamId && e.result === "won" || e.team === opp && e.result === "lost")).length;
+  const toLost = evs.filter(e => e.type === "turnover" && (e.team === teamId && e.result === "lost" || e.team === opp && e.result === "won")).length;
+  const kos = evs.filter(e => e.type === "kickout" && e.team === teamId);
   const kosWon = kos.filter(k => k.result === "won").length;
-  const fouls = events.filter(e => e.type === "foul" && e.team === teamId);
+  const fouls = evs.filter(e => e.type === "foul" && e.team === teamId);
   const cards = fouls.filter(f => f.card && f.card !== "none");
   const yellows = fouls.filter(f => f.card === "yellow").length;
   const reds = fouls.filter(f => f.card === "red").length;
@@ -2235,11 +2237,11 @@ function aggregateStats(events, teamId) {
   const uConv = uncontested.length ? Math.round(uncontested.filter(s => ["goal", "point", "2point"].includes(s.outcome)).length / uncontested.length * 100) : null;
 
   // Streaks
-  const runs = scoringRuns(events).filter(r => r.team === teamId);
+  const runs = scoringRuns(evs).filter(r => r.team === teamId);
   const longestRun = runs.reduce((mx, r) => Math.max(mx, r.evts.length), 0);
   const longestRunPts = runs.reduce((mx, r) => Math.max(mx, r.evts.reduce((a, e) => a + (e.outcome === "goal" ? 3 : e.outcome === "2point" ? 2 : 1), 0)), 0);
   // Active streak: latest contiguous run if ends with this team's score
-  const allScores = events.filter(e => e.type === "shot" && ["goal", "point", "2point"].includes(e.outcome)).sort((a, b) => (a.half || 1) - (b.half || 1) || a.time - b.time);
+  const allScores = evs.filter(e => e.type === "shot" && ["goal", "point", "2point"].includes(e.outcome)).sort((a, b) => (a.half || 1) - (b.half || 1) || a.time - b.time);
   let activeRun = 0;
   for (let i = allScores.length - 1; i >= 0; i--) {
     if (allScores[i].team === teamId) activeRun++;else break;
@@ -2999,8 +3001,9 @@ const ratioBucket = (num, den) => QCOLS.reduce((acc, c) => ({
 
 // ─── Per-team aggregation for Q-based view ───────────────────────────
 function quartAggregate(events, teamId, homeAttacksLeft) {
+  const events_ = events.filter(e => !e.ignored);
   const opp = teamId === "home" ? "away" : "home";
-  const possAll = buildPossessions(events);
+  const possAll = buildPossessions(events_);
   const poss = possAll.filter(p => p.team === teamId);
   const oppPoss = possAll.filter(p => p.team === opp);
 
@@ -3030,9 +3033,12 @@ function quartAggregate(events, teamId, homeAttacksLeft) {
   })), e => e._bip);
 
   // Shots
-  const shots = events.filter(e => e.type === "shot" && e.team === teamId);
+  const shots = events_.filter(e => e.type === "shot" && e.team === teamId);
   const shotsQ = bucketize(shots);
   const scoresQ = bucketize(shots.filter(s => ["goal", "point", "2point"].includes(s.outcome)));
+  const goalsQ = bucketize(shots.filter(s => s.outcome === "goal"));
+  const twosQ = bucketize(shots.filter(s => s.outcome === "2point"));
+  const pointsQ = bucketize(shots.filter(s => s.outcome === "point"));
   const ptsQ = bucketize(shots, e => actualPts(e.outcome));
   const xpQ = bucketize(shots, e => shotXP(e));
   const widesQ = bucketize(shots.filter(s => s.outcome === "wideG" || s.outcome === "wideP"));
@@ -3066,9 +3072,23 @@ function quartAggregate(events, teamId, homeAttacksLeft) {
   const toShots = bucketize(shots.filter(s => shotOrigin[s.id] === "turnover"));
   const cleanShots = bucketize(shots.filter(s => shotOrigin[s.id] === "open"));
 
+  // Scores by possession origin — per outcome (goal / 2pt / point)
+  const mkScoreOrigin = originKey => {
+    const scoring = shots.filter(s => shotOrigin[s.id] === originKey && ["goal", "point", "2point"].includes(s.outcome));
+    return {
+      g: bucketize(scoring.filter(s => s.outcome === "goal")),
+      t: bucketize(scoring.filter(s => s.outcome === "2point")),
+      p: bucketize(scoring.filter(s => s.outcome === "point"))
+    };
+  };
+  const ownKOScores = mkScoreOrigin("kickout_own");
+  const oppKOScores = mkScoreOrigin("kickout_opp");
+  const toScores = mkScoreOrigin("turnover");
+  const cleanScores = mkScoreOrigin("open");
+
   // Turnovers
   const toWon = events.filter(e => e.type === "turnover" && (e.team === teamId && e.result === "won" || e.team === opp && e.result === "lost"));
-  const toLost = events.filter(e => e.type === "turnover" && (e.team === teamId && e.result === "lost" || e.team === opp && e.result === "won"));
+  const toLost = evs.filter(e => e.type === "turnover" && (e.team === teamId && e.result === "lost" || e.team === opp && e.result === "won"));
   const toWonQ = bucketize(toWon);
   const toLostQ = bucketize(toLost);
   // own half / opp half (simplified: x position relative to attacking direction)
@@ -3111,11 +3131,20 @@ function quartAggregate(events, teamId, homeAttacksLeft) {
     time: p.startTime,
     half: p.half
   })));
-  const koWonScore = bucketize(poss.filter(p => p.origin === "kickout" && p.pts > 0).map(p => ({
-    team: teamId,
-    time: p.startTime,
-    half: p.half
-  })));
+  // KO won → score, split by outcome (goal / 2pt / point)
+  const koScoreEvts = poss.filter(p => p.origin === "kickout" && p.pts > 0).map(p => {
+    const se = p.events.find(e => e.type === "shot" && ["goal", "point", "2point"].includes(e.outcome));
+    return se ? {
+      outcome: se.outcome,
+      team: teamId,
+      time: p.startTime,
+      half: p.half
+    } : null;
+  }).filter(Boolean);
+  const koWonScore = bucketize(koScoreEvts); // total count (kept for compat)
+  const koWonScoreGoalQ = bucketize(koScoreEvts.filter(e => e.outcome === "goal"));
+  const koWonScoreTwoQ = bucketize(koScoreEvts.filter(e => e.outcome === "2point"));
+  const koWonScorePtQ = bucketize(koScoreEvts.filter(e => e.outcome === "point"));
 
   // ── KO Win Type — clean vs break, own vs opp kickout ──
   // type2 records the WINNING team's catch:
@@ -3135,6 +3164,9 @@ function quartAggregate(events, teamId, homeAttacksLeft) {
     shots,
     shotsQ,
     scoresQ,
+    goalsQ,
+    twosQ,
+    pointsQ,
     ptsQ,
     xpQ,
     widesQ,
@@ -3143,6 +3175,10 @@ function quartAggregate(events, teamId, homeAttacksLeft) {
     oppKOShots,
     toShots,
     cleanShots,
+    ownKOScores,
+    oppKOScores,
+    toScores,
+    cleanScores,
     toWon,
     toLost,
     toWonQ,
@@ -3161,6 +3197,9 @@ function quartAggregate(events, teamId, homeAttacksLeft) {
     koLongWonQ,
     koWonShot,
     koWonScore,
+    koWonScoreGoalQ,
+    koWonScoreTwoQ,
+    koWonScorePtQ,
     ownKOWonClean,
     ownKOWonBreak,
     oppKOWonClean,
@@ -3470,6 +3509,14 @@ function DetailedStatsTab({
     const v = b[c.id];
     return v === undefined || v === null || v === 0 || v === "" || v === "0" ? "–" : v;
   });
+
+  // Format scores as G-2pt-P per quarter (e.g. "1-0-3")
+  const FScore = (gQ, tQ, pQ) => QCOLS.map(c => {
+    const g = gQ[c.id] || 0,
+      t = tQ[c.id] || 0,
+      p = pQ[c.id] || 0;
+    return g === 0 && t === 0 && p === 0 ? "–" : `${g}-${t}-${p}`;
+  });
   const SECTS = ["Shooting & Possession", "Turnovers", "Kickouts", "KO Win Type", "Expected Points", "Attack Speed", "Defensive T/O Zones", "Shooting Clock", "Consecutive Scoreless", "SQI", "Scoring Runs", "Half vs Half", "Productivity", "KO Targets", "Individual Performance"];
   return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
     style: {
@@ -3594,8 +3641,8 @@ function DetailedStatsTab({
     bold: true
   }), /*#__PURE__*/React.createElement(Pair, {
     label: "Scores",
-    hVals: F(hSt.scoresQ),
-    aVals: F(aSt.scoresQ),
+    hVals: FScore(hSt.goalsQ, hSt.twosQ, hSt.pointsQ),
+    aVals: FScore(aSt.goalsQ, aSt.twosQ, aSt.pointsQ),
     hN: hN,
     aN: aN,
     showH: showH,
@@ -3677,6 +3724,54 @@ function DetailedStatsTab({
   }), /*#__PURE__*/React.createElement(DR, {
     label: "Open / clean",
     vals: F(aSt.cleanShots),
+    accent: "var(--away)",
+    sub: true
+  })), /*#__PURE__*/React.createElement(SubHdr, {
+    label: "SCORES BY POSSESSION ORIGIN  (goal-2pt-pt)"
+  }), showH && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(TeamHdr, {
+    name: homeTeam.name,
+    accent: "var(--home)"
+  }), /*#__PURE__*/React.createElement(DR, {
+    label: "Own kickout",
+    vals: FScore(hSt.ownKOScores.g, hSt.ownKOScores.t, hSt.ownKOScores.p),
+    accent: "var(--home)",
+    sub: true
+  }), /*#__PURE__*/React.createElement(DR, {
+    label: "Opp kickout",
+    vals: FScore(hSt.oppKOScores.g, hSt.oppKOScores.t, hSt.oppKOScores.p),
+    accent: "var(--home)",
+    sub: true
+  }), /*#__PURE__*/React.createElement(DR, {
+    label: "Turnover",
+    vals: FScore(hSt.toScores.g, hSt.toScores.t, hSt.toScores.p),
+    accent: "var(--home)",
+    sub: true
+  }), /*#__PURE__*/React.createElement(DR, {
+    label: "Open / clean",
+    vals: FScore(hSt.cleanScores.g, hSt.cleanScores.t, hSt.cleanScores.p),
+    accent: "var(--home)",
+    sub: true
+  })), showA && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(TeamHdr, {
+    name: awayTeam.name,
+    accent: "var(--away)"
+  }), /*#__PURE__*/React.createElement(DR, {
+    label: "Own kickout",
+    vals: FScore(aSt.ownKOScores.g, aSt.ownKOScores.t, aSt.ownKOScores.p),
+    accent: "var(--away)",
+    sub: true
+  }), /*#__PURE__*/React.createElement(DR, {
+    label: "Opp kickout",
+    vals: FScore(aSt.oppKOScores.g, aSt.oppKOScores.t, aSt.oppKOScores.p),
+    accent: "var(--away)",
+    sub: true
+  }), /*#__PURE__*/React.createElement(DR, {
+    label: "Turnover",
+    vals: FScore(aSt.toScores.g, aSt.toScores.t, aSt.toScores.p),
+    accent: "var(--away)",
+    sub: true
+  }), /*#__PURE__*/React.createElement(DR, {
+    label: "Open / clean",
+    vals: FScore(aSt.cleanScores.g, aSt.cleanScores.t, aSt.cleanScores.p),
     accent: "var(--away)",
     sub: true
   }))), /*#__PURE__*/React.createElement(Sect, {
@@ -3876,8 +3971,8 @@ function DetailedStatsTab({
     showA: showA
   }), /*#__PURE__*/React.createElement(Pair, {
     label: "KO Won \u2192 Score",
-    hVals: F(hSt.koWonScore),
-    aVals: F(aSt.koWonScore),
+    hVals: FScore(hSt.koWonScoreGoalQ, hSt.koWonScoreTwoQ, hSt.koWonScorePtQ),
+    aVals: FScore(aSt.koWonScoreGoalQ, aSt.koWonScoreTwoQ, aSt.koWonScorePtQ),
     hN: hN,
     aN: aN,
     showH: showH,
@@ -6699,7 +6794,16 @@ function LogTab({
         color: "var(--t3)",
         marginTop: 1
       }
-    }, "\uD83C\uDFAC ", e.videoTs)), isScore && /*#__PURE__*/React.createElement("span", {
+    }, "\uD83C\uDFAC ", e.videoTs), e.ignored && /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontFamily: "var(--fCond)",
+        fontSize: 9,
+        fontWeight: 700,
+        color: "var(--away)",
+        letterSpacing: "0.08em",
+        marginTop: 2
+      }
+    }, "EXCLUDED FROM STATS")), isScore && /*#__PURE__*/React.createElement("span", {
       className: "ev-pts"
     }, "+", lab.pts), isMiss && /*#__PURE__*/React.createElement("span", {
       className: "ev-pts miss"
@@ -10987,8 +11091,9 @@ function PendingDots() {
 // Gaussian model: remaining score swing ~ N(0,σ²), σ shrinks with time.
 // Empirical full-match σ ≈ 8 pts. Returns 0-100 home win probability.
 function winProb(events, seconds, half, halfLength) {
-  const hS = scoreOf(events, "home").total;
-  const aS = scoreOf(events, "away").total;
+  const evs = events.filter(e => !e.ignored);
+  const hS = scoreOf(evs, "home").total;
+  const aS = scoreOf(evs, "away").total;
   const diff = hS - aS;
   const halfSecs = (halfLength || 35) * 60;
   const elapsed = Math.min(((half || 1) - 1) * halfSecs + (seconds || 0), 2 * halfSecs);
@@ -12491,8 +12596,58 @@ function EditEventModal({
   }, "Red"))), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between",
+      padding: "10px 12px",
+      borderRadius: 8,
+      background: e.ignored ? "var(--away-d)" : "var(--bg-2)",
+      border: `1px solid ${e.ignored ? "var(--away)" : "var(--line-soft)"}`,
+      transition: ".15s"
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontFamily: "var(--fd)",
+      fontSize: 13,
+      fontWeight: 600,
+      color: e.ignored ? "var(--away)" : "var(--t1)"
+    }
+  }, "Exclude from stats"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontFamily: "var(--fm)",
+      fontSize: 11,
+      color: "var(--t3)",
+      marginTop: 2
+    }
+  }, "Event stays in log but is ignored by all calculations")), /*#__PURE__*/React.createElement("button", {
+    onClick: () => setE({
+      ...e,
+      ignored: !e.ignored
+    }),
+    style: {
+      width: 38,
+      height: 22,
+      borderRadius: 100,
+      background: e.ignored ? "var(--away)" : "var(--bg-3)",
+      position: "relative",
+      transition: ".15s",
+      flexShrink: 0
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      position: "absolute",
+      width: 16,
+      height: 16,
+      borderRadius: "50%",
+      background: "var(--t1)",
+      top: 3,
+      left: e.ignored ? 19 : 3,
+      transition: ".15s"
+    }
+  }))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
       gap: 10,
-      marginTop: 12,
+      marginTop: 4,
       paddingTop: 14,
       borderTop: "1px solid var(--line-soft)"
     }
