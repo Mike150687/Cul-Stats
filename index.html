@@ -1,12 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-<meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/><meta name="mobile-web-app-capable" content="yes"/><meta name="theme-color" content="#0b0c11"/>
-<title>GAA Match Tracker</title>
-<style>*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}html,body{height:100%;background:#0b0c11;color:#edeae4;-webkit-tap-highlight-color:transparent;overscroll-behavior:none;}#root{min-height:100%;display:flex;flex-direction:column;}</style>
-</head>
-<body><div id="root"></div>
-<script>/**
+<head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/><meta name="mobile-web-app-capable" content="yes"/><meta name="theme-color" content="#0b0c11"/><title>GAA Match Tracker</title><style>*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}html,body{height:100%;background:#0b0c11;color:#edeae4;-webkit-tap-highlight-color:transparent;overscroll-behavior:none;}#root{min-height:100%;display:flex;flex-direction:column;}</style></head><body><div id="root"></div><script>/**
  * @license React
  * react.production.min.js
  *
@@ -304,8 +298,7 @@ c,!1,d,e);a[Ja]=b.current;sc(8===a.nodeType?a.parentNode:a);return new Xf(b)};Q.
 var d=null!=c&&c.hydratedSources||null,e=!1,f="",g=aj;null!==c&&void 0!==c&&(!0===c.unstable_strictMode&&(e=!0),void 0!==c.identifierPrefix&&(f=c.identifierPrefix),void 0!==c.onRecoverableError&&(g=c.onRecoverableError));b=Wi(b,null,a,1,null!=c?c:null,e,!1,f,g);a[Ja]=b.current;sc(a);if(d)for(a=0;a<d.length;a++)c=d[a],e=c._getVersion,e=e(c._source),null==b.mutableSourceEagerHydrationData?b.mutableSourceEagerHydrationData=[c,e]:b.mutableSourceEagerHydrationData.push(c,e);return new Ud(b)};Q.render=
 function(a,b,c){if(!Vd(b))throw Error(m(200));return Wd(null,a,b,!1,c)};Q.unmountComponentAtNode=function(a){if(!Vd(a))throw Error(m(40));return a._reactRootContainer?(yb(function(){Wd(null,null,a,!1,function(){a._reactRootContainer=null;a[Ja]=null})}),!0):!1};Q.unstable_batchedUpdates=Tf;Q.unstable_renderSubtreeIntoContainer=function(a,b,c,d){if(!Vd(c))throw Error(m(200));if(null==a||void 0===a._reactInternals)throw Error(m(38));return Wd(a,b,c,!1,d)};Q.version="18.3.1-next-f1338f8080-20240426"});
 })();
-</script>
-<script>(function(){
+</script><script>(function(){
 function _extends() { return _extends = Object.assign ? Object.assign.bind() : function (n) { for (var e = 1; e < arguments.length; e++) { var t = arguments[e]; for (var r in t) ({}).hasOwnProperty.call(t, r) && (n[r] = t[r]); } return n; }, _extends.apply(null, arguments); }
 // ─────────────────────────────────────────────────────────────────────
 // GAA Match Tracker — full app component (drop-in for Vite/CRA)
@@ -1072,201 +1065,159 @@ async function exportToXLSX(events, homeTeam, awayTeam) {
 }
 
 // ─── Expected Points (xP) — 12-sector model ──────────────────────────
+// ─── xP sector layout ────────────────────────────────────────────────
+// Sectors 1–12.  Within each zone: L=left angle, M=straight on, R=right angle.
+//
+//  1– 3 : beyond 45m          (normalX ≥ 31%)  — all shot types
+//  4– 6 : 20m – 45m           (14% < normalX < 31%) — 2-point attempt
+//  7– 9 : 20m – 45m           (14% < normalX < 31%) — 1-point attempt
+// 10–12 : 0 – 20m             (normalX ≤ 14%)  — close range
+//
+// L = left of posts (y ≤ 30%), M = straight on (30% < y ≤ 70%), R = right (y > 70%)
+
 const XP_TABLE = {
+  //            play    free    gPlay   gFree  f45    pen    side
+  // 1–3  Beyond 45m (all shot types)
   1: {
-    play: 0.500,
-    gPlay: 1.432,
-    free: 0.656,
-    gFree: 0.40,
-    f45: 0,
+    play: 0.12,
+    free: 0.32,
+    gPlay: 0.62,
+    gFree: 0.38,
+    f45: 0.40,
     pen: 0,
-    side: 0.452
+    side: 0.10
   },
   2: {
-    play: 0.542,
-    gPlay: 1.432,
-    free: 0.800,
-    gFree: 0.40,
-    f45: 0,
+    play: 0.16,
+    free: 0.42,
+    gPlay: 0.72,
+    gFree: 0.38,
+    f45: 0.50,
     pen: 0,
     side: 0
   },
   3: {
-    play: 0.500,
-    gPlay: 1.432,
-    free: 0.656,
+    play: 0.12,
+    free: 0.32,
+    gPlay: 0.62,
+    gFree: 0.38,
+    f45: 0.40,
+    pen: 0,
+    side: 0.10
+  },
+  // 4–6  20m–45m, 2-point attempts  (xP = P(score) × 2 pts)
+  4: {
+    play: 0.36,
+    free: 0.56,
+    gPlay: 0.90,
     gFree: 0.40,
     f45: 0,
     pen: 0,
-    side: 0.452
-  },
-  4: {
-    play: 0.695,
-    gPlay: 1.432,
-    free: 0.990,
-    gFree: 0.40,
-    f45: 0.495,
-    pen: 0,
-    side: 0.452
+    side: 0.24
   },
   5: {
-    play: 0.715,
-    gPlay: 1.432,
-    free: 1.212,
+    play: 0.48,
+    free: 0.70,
+    gPlay: 1.10,
     gFree: 0.40,
-    f45: 0.606,
+    f45: 0,
     pen: 0,
     side: 0
   },
   6: {
-    play: 0.702,
-    gPlay: 1.432,
-    free: 0.995,
-    gFree: 0.40,
-    f45: 0.498,
-    pen: 0,
-    side: 0.452
-  },
-  7: {
-    play: 0.472,
-    gPlay: 1.432,
-    free: 0.735,
+    play: 0.36,
+    free: 0.56,
+    gPlay: 0.90,
     gFree: 0.40,
     f45: 0,
     pen: 0,
-    side: 0
+    side: 0.24
+  },
+  // 7–9  20m–45m, 1-point attempts
+  7: {
+    play: 0.46,
+    free: 0.72,
+    gPlay: 1.25,
+    gFree: 0.40,
+    f45: 0,
+    pen: 0,
+    side: 0.38
   },
   8: {
-    play: 0.524,
-    gPlay: 1.432,
-    free: 0.849,
+    play: 0.58,
+    free: 0.86,
+    gPlay: 1.42,
     gFree: 0.40,
     f45: 0,
     pen: 0,
     side: 0
   },
   9: {
-    play: 0.486,
-    gPlay: 1.432,
-    free: 0.749,
+    play: 0.46,
+    free: 0.72,
+    gPlay: 1.25,
     gFree: 0.40,
     f45: 0,
     pen: 0,
-    side: 0
+    side: 0.38
   },
+  // 10–12  0–20m, close range
   10: {
-    play: 0.500,
-    gPlay: 1.432,
-    free: 0.798,
+    play: 0.62,
+    free: 0.86,
+    gPlay: 1.52,
     gFree: 0.40,
     f45: 0,
     pen: 0,
-    side: 0.226
+    side: 0.20
   },
   11: {
-    play: 0.749,
-    gPlay: 1.432,
-    free: 0.995,
+    play: 0.76,
+    free: 0.96,
+    gPlay: 2.08,
     gFree: 0.40,
     f45: 0,
     pen: 2.321,
     side: 0
   },
   12: {
-    play: 0.494,
-    gPlay: 1.432,
-    free: 0.891,
+    play: 0.62,
+    free: 0.86,
+    gPlay: 1.52,
     gFree: 0.40,
     f45: 0,
     pen: 0,
-    side: 0.226
+    side: 0.20
   }
 };
 
-// Sector resolver — port of original shotSector().
-function shotSector(normalX, y, isGoalAttempt, is2PointAttempt, is45m, isPlacedBall) {
-  const yBand = y <= 30 ? "L" : y <= 70 ? "M" : "R";
-  if (is45m) return {
-    "L": 6,
-    "M": 5,
-    "R": 4
-  }[yBand];
-  if (isPlacedBall) {
-    const xBand = normalX > 31 ? "A" : normalX > 14 ? "B" : "D";
-    return {
-      "A": {
-        "L": 3,
-        "M": 2,
-        "R": 1
-      },
-      "B": {
-        "L": 6,
-        "M": 5,
-        "R": 4
-      },
-      "C": {
-        "L": 9,
-        "M": 8,
-        "R": 7
-      },
-      "D": {
-        "L": 12,
-        "M": 11,
-        "R": 10
-      }
-    }[xBand][yBand];
+// Sector resolver.
+//  Beyond 45m (normalX ≥ 31%)  → 1–3  (all shot types)
+//  20m–45m + 2-pt attempt      → 4–6
+//  20m–45m + 1-pt attempt      → 7–9
+//  Inside 20m (normalX ≤ 14%)  → 10–12
+function shotSector(normalX, y, isGoalAttempt, is2PointAttempt, is45m, isPlacedBall, attacksLeft) {
+  // Lateral offset flips with attacking direction so sector 1 is always
+  // "right of posts" from the attacking player's viewpoint.
+  // Attacking RIGHT: bottom of pitch (y>70) = right of posts → offset 0 → S1,S4,S7,S10
+  // Attacking LEFT:  top of pitch  (y≤30) = right of posts → offset 0 → S1,S4,S7,S10
+  const yOff = attacksLeft ? y <= 30 ? 0 : y <= 70 ? 1 : 2 // attacking left
+  : y > 70 ? 0 : y > 30 ? 1 : 2; // attacking right
+  let zone;
+  if (normalX >= 31) {
+    zone = 0; // → 1–3  beyond 45m
+  } else if (normalX > 14 && is2PointAttempt) {
+    zone = 1; // → 4–6  20m–45m, 2-pt
+  } else if (normalX > 14) {
+    zone = 2; // → 7–9  20m–45m, 1-pt
+  } else {
+    zone = 3; // → 10–12 inside 20m
   }
-  if (isGoalAttempt) {
-    const xBand = normalX > 31 ? "A" : normalX > 14 ? "B" : "D";
-    return {
-      "A": {
-        "L": 3,
-        "M": 2,
-        "R": 1
-      },
-      "B": {
-        "L": 6,
-        "M": 5,
-        "R": 4
-      },
-      "D": {
-        "L": 12,
-        "M": 11,
-        "R": 10
-      }
-    }[xBand][yBand];
-  }
-  if (is2PointAttempt) {
-    const xBand = normalX > 31 ? "A" : "B";
-    return {
-      "A": {
-        "L": 3,
-        "M": 2,
-        "R": 1
-      },
-      "B": {
-        "L": 6,
-        "M": 5,
-        "R": 4
-      }
-    }[xBand][yBand];
-  }
-  const xBand = normalX > 14 ? "C" : "D";
-  return {
-    "C": {
-      "L": 9,
-      "M": 8,
-      "R": 7
-    },
-    "D": {
-      "L": 12,
-      "M": 11,
-      "R": 10
-    }
-  }[xBand][yBand];
+  return zone * 3 + yOff + 1; // 1–12
 }
 
-// Returns xP for a shot. Uses event.halDir if present, else infers home attacks right.
+// Returns xP for a shot. event.halDir is stamped at event-creation time and
+// already accounts for the half-time end-swap, so normalX is always correct.
 function shotXP(event) {
   var _SHOT_OUTCOMES$find;
   if (!event.loc) return 0;
@@ -1274,8 +1225,9 @@ function shotXP(event) {
     x,
     y
   } = event.loc;
-  // halDir from original: homeAttacksLeft at event-creation time.
-  // In this mockup we treat home as attacking RIGHT by default (halDir=false).
+  // halDir = true  → home attacked LEFT when this shot was taken
+  // halDir = false → home attacked RIGHT when this shot was taken
+  // Falls back to false (home attacks right) only for very old/imported events.
   const halDir = event.halDir !== undefined ? event.halDir : false;
   const attacksLeft = event.team === "home" ? halDir : !halDir;
   const normalX = attacksLeft ? x : 100 - x;
@@ -1286,7 +1238,7 @@ function shotXP(event) {
   const is45m = src === "45m";
   const isPlacedBall = ["free", "mark"].includes(src);
   if (src === "penalty") return 2.321;
-  const sector = shotSector(normalX, y, isGoalAttempt, is2PointAttempt, is45m, isPlacedBall);
+  const sector = shotSector(normalX, y, isGoalAttempt, is2PointAttempt, is45m, isPlacedBall, attacksLeft);
   const row = XP_TABLE[sector];
   if (!row) return 0;
   if (isGoalAttempt) {
@@ -4748,7 +4700,7 @@ function ShootingClock({
         const halDir = s.halDir !== undefined ? s.halDir : false;
         const attacksLeft = tid === "home" ? halDir : !halDir;
         const nx = attacksLeft ? s.loc.x : 100 - s.loc.x;
-        const sec = shotSector(nx, s.loc.y, isGA, is2, is45, isPl);
+        const sec = shotSector(nx, s.loc.y, isGA, is2, is45, isPl, attacksLeft);
         if (!sm[sec]) sm[sec] = {
           n: 0,
           tot: 0
@@ -7192,6 +7144,8 @@ function ActionModal({
   setAction,
   homeTeam,
   awayTeam,
+  homeAttacksLeft,
+  half,
   onComplete
 }) {
   if (!action) return null;
@@ -7306,6 +7260,8 @@ function ActionModal({
     team: team,
     homeTeam: homeTeam,
     awayTeam: awayTeam,
+    homeAttacksLeft: homeAttacksLeft,
+    half: half,
     advance: advance,
     back: back,
     setAction: setAction
@@ -7368,11 +7324,20 @@ function ActionModalBody({
   team,
   homeTeam,
   awayTeam,
+  homeAttacksLeft,
+  half,
   advance,
   back,
   setAction
 }) {
   const step = action.step;
+
+  // Compute which direction this team is attacking right now.
+  // H2 flips the ends relative to H1 (teams swap after half-time).
+  // halDir = homeAttacksLeft for H1, !homeAttacksLeft for H2.
+  const halDir = half === 2 ? !homeAttacksLeft : homeAttacksLeft ?? true;
+  // team "home" attacks left when halDir=true; team "away" attacks left when halDir=false
+  const attackingLeft = action.team === "home" ? halDir : !halDir;
 
   // ── Team selection ──
   if (step === "team") {
@@ -7554,6 +7519,7 @@ function ActionModalBody({
   if (step === "location") {
     return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement(PitchSelector, {
       selected: action.loc,
+      attackingLeft: attackingLeft,
       onSelect: loc => setAction({
         ...action,
         loc
@@ -7968,7 +7934,9 @@ function SetupScreen({
   venue,
   setVenue,
   halfLength,
-  setHalfLength
+  setHalfLength,
+  homeAttacksLeft,
+  setHomeAttacksLeft
 }) {
   const [section, setSection] = useState("teams");
   const SECTIONS = [["teams", "users", "Teams & Squads"], ["jerseys", "shield", "Jerseys & Colours"], ["conditions", "target", "Win Conditions"], ["progression", "play", "Play Progression"], ["saved", "save", "Saved Matches"], ["season", "chart", "Season Stats"]];
@@ -9530,30 +9498,26 @@ function PlayProgressionSection() {
       gap: 10
     }
   }, /*#__PURE__*/React.createElement("button", {
-    onClick: () => set({
-      homeAttacksLeft: false
-    }),
+    onClick: () => setHomeAttacksLeft(false),
     style: {
       flex: 1,
       padding: "14px",
-      background: !config.homeAttacksLeft ? "var(--home-d)" : "var(--bg-2)",
-      border: `1px solid ${!config.homeAttacksLeft ? "var(--home)" : "var(--line-soft)"}`,
-      color: !config.homeAttacksLeft ? "var(--home)" : "var(--t1)",
+      background: !homeAttacksLeft ? "var(--home-d)" : "var(--bg-2)",
+      border: `1px solid ${!homeAttacksLeft ? "var(--home)" : "var(--line-soft)"}`,
+      color: !homeAttacksLeft ? "var(--home)" : "var(--t1)",
       borderRadius: 8,
       fontFamily: "var(--fd)",
       fontSize: 14,
       fontWeight: 600
     }
   }, "Home attacks \u2192 Right"), /*#__PURE__*/React.createElement("button", {
-    onClick: () => set({
-      homeAttacksLeft: true
-    }),
+    onClick: () => setHomeAttacksLeft(true),
     style: {
       flex: 1,
       padding: "14px",
-      background: config.homeAttacksLeft ? "var(--home-d)" : "var(--bg-2)",
-      border: `1px solid ${config.homeAttacksLeft ? "var(--home)" : "var(--line-soft)"}`,
-      color: config.homeAttacksLeft ? "var(--home)" : "var(--t1)",
+      background: homeAttacksLeft ? "var(--home-d)" : "var(--bg-2)",
+      border: `1px solid ${homeAttacksLeft ? "var(--home)" : "var(--line-soft)"}`,
+      color: homeAttacksLeft ? "var(--home)" : "var(--t1)",
       borderRadius: 8,
       fontFamily: "var(--fd)",
       fontSize: 14,
@@ -11304,6 +11268,7 @@ function App() {
   const [awayTeam, setAwayTeam] = useState(AWAY_TEAM);
   const [venue, setVenue] = useState("");
   const [halfLength, setHalfLength] = useState(30);
+  const [homeAttacksLeft, setHomeAttacksLeft] = useState(true);
 
   // tick clock
   useEffect(() => {
@@ -11315,11 +11280,16 @@ function App() {
   const awayScore = scoreOf(events, "away");
   const openAction = a => setAction(a);
   const handleComplete = a => {
+    // halDir = "did home team attack LEFT during this event?"
+    // H1: use homeAttacksLeft directly.
+    // H2: teams swap ends, so the direction flips.
+    const halDir = half === 2 ? !homeAttacksLeft : homeAttacksLeft;
     const ev = {
       ...a,
       id: `ev-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       time: seconds,
-      half
+      half,
+      halDir
     };
     delete ev.step;
     setEvents(es => [...es, ev]);
@@ -11662,7 +11632,9 @@ function App() {
       venue: venue,
       setVenue: setVenue,
       halfLength: halfLength,
-      setHalfLength: setHalfLength
+      setHalfLength: setHalfLength,
+      homeAttacksLeft: homeAttacksLeft,
+      setHomeAttacksLeft: setHomeAttacksLeft
     });
   }
   if (screen === "saved") {
@@ -11883,6 +11855,8 @@ function App() {
     setAction: setAction,
     homeTeam: homeTeam,
     awayTeam: awayTeam,
+    homeAttacksLeft: homeAttacksLeft,
+    half: half,
     onComplete: handleComplete
   }), editingEvent && /*#__PURE__*/React.createElement(EditEventModal, {
     event: editingEvent,
@@ -13068,5 +13042,4 @@ function GAATracker() {
 }
 const _c = document.getElementById("root");
 ReactDOM.createRoot(_c).render(React.createElement(GAATracker, null));
-})();</script>
-</body></html>
+})();</script></body></html>
