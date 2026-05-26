@@ -2888,18 +2888,401 @@ function LiveStatsTab({
 }
 
 // ─── Win Conditions Live Bar ──────────────────────────────────────────
-function WinConditionsBar({
-  conditions,
+// ─── Half-Time Report Modal ───────────────────────────────────────────
+function HalfTimeReportModal({
   events,
   homeTeam,
-  awayTeam
+  awayTeam,
+  conditions,
+  halfLength,
+  onClose
 }) {
+  const h1Events = events.filter(e => !e.ignored && (e.half || 1) === 1);
+  const h = aggregateStats(h1Events, "home");
+  const a = aggregateStats(h1Events, "away");
+  const hS = scoreOf(h1Events, "home");
+  const aS = scoreOf(h1Events, "away");
+  const actual = buildActualMetrics(h1Events);
+  const adherence = calcAdherence(conditions, actual);
+
+  // Score in G-2pt-Pt format
+  const fmtScore = s => `${s.g}-${s.p2 || 0}-${s.p}`;
+  const diff = hS.total - aS.total;
+
+  // Six headline stats (most relevant for half-time)
+  const headlines = [{
+    label: "Shot Conversion",
+    home: `${h.conv}%`,
+    away: `${a.conv}%`
+  }, {
+    label: "Shots",
+    home: `${h.shots}`,
+    away: `${a.shots}`
+  }, {
+    label: "Possession",
+    home: `${h.possPct}%`,
+    away: `${a.possPct}%`
+  }, {
+    label: "Turnover Net",
+    home: `${h.toWon - h.toLost >= 0 ? "+" : ""}${h.toWon - h.toLost}`,
+    away: `${a.toWon - a.toLost >= 0 ? "+" : ""}${a.toWon - a.toLost}`
+  }, {
+    label: "KO Retention",
+    home: `${h.kosPct}%`,
+    away: `${a.kosPct}%`
+  }, {
+    label: "xP Delta",
+    home: `${(h.xPDelta >= 0 ? "+" : "") + h.xPDelta.toFixed(2)}`,
+    away: `${(a.xPDelta >= 0 ? "+" : "") + a.xPDelta.toFixed(2)}`
+  }];
+
+  // Identify biggest issue (condition furthest from target, scaled)
+  let biggestIssue = null,
+    worstScore = 999;
+  conditions.forEach(c => {
+    const val = actual[c.id];
+    if (val === undefined) return;
+    const tgt = Number(c.target) || 0;
+    let score;
+    if (c.trend === "higher") score = tgt > 0 ? Math.min(100, Math.round(val / tgt * 100)) : 100;else score = val === 0 ? 100 : tgt > 0 ? Math.min(100, Math.round(tgt / val * 100)) : 0;
+    if (score < worstScore) {
+      worstScore = score;
+      biggestIssue = {
+        ...c,
+        val,
+        score
+      };
+    }
+  });
+
+  // Key moments: top scorer, longest scoreless spell
+  const h1Scores = h1Events.filter(e => e.type === "shot" && ["goal", "point", "2point"].includes(e.outcome) && e.team === "home");
+  const topScorer = (() => {
+    const cnt = {};
+    h1Scores.forEach(e => {
+      var _homeTeam$players$fin;
+      const n = ((_homeTeam$players$fin = homeTeam.players.find(p => p.id === e.player)) == null ? void 0 : _homeTeam$players$fin.name) || "Unknown";
+      cnt[n] = (cnt[n] || 0) + actualPts(e.outcome);
+    });
+    const [name, pts] = Object.entries(cnt).sort((a, b) => b[1] - a[1])[0] || ["—", 0];
+    return {
+      name,
+      pts
+    };
+  })();
+  const [copied, setCopied] = useState(false);
+  const copyText = () => {
+    const txt = [`HALF-TIME REPORT — ${homeTeam.name} vs ${awayTeam.name}`, ``, `SCORE: ${homeTeam.name} ${fmtScore(hS)} (${hS.total})  vs  ${awayTeam.name} ${fmtScore(aS)} (${aS.total})  ${diff > 0 ? `+${diff}` : diff < 0 ? `${diff}` : "LEVEL"}`, `Game Plan Adherence: ${adherence ?? '—'}/100`, ``, `KEY STATS        ${homeTeam.short.padEnd(8)} ${awayTeam.short}`, ...headlines.map(r => `${r.label.padEnd(20)} ${r.home.padEnd(8)} ${r.away}`), ``, biggestIssue ? `BIGGEST ISSUE: ${biggestIssue.label} — currently ${biggestIssue.val}${biggestIssue.unit || ""} vs target ${biggestIssue.target}${biggestIssue.unit || ""} (${biggestIssue.score}/100)` : "All targets on track.", ``, topScorer.pts > 0 ? `TOP SCORER: ${topScorer.name} — ${topScorer.pts} pts` : "No scores from play yet."].join("\n");
+    navigator.clipboard.writeText(txt).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
+  const SCORE_COL = diff > 0 ? "var(--score)" : diff < 0 ? "var(--away)" : "var(--gold)";
+  return /*#__PURE__*/React.createElement("div", {
+    className: "modal-shade",
+    onClick: onClose
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "modal",
+    onClick: e => e.stopPropagation(),
+    style: {
+      maxWidth: 480
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "modal-h"
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    className: "tag"
+  }, "HALF-TIME"), /*#__PURE__*/React.createElement("div", {
+    className: "ttl"
+  }, homeTeam.name, " vs ", awayTeam.name)), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 8,
+      alignItems: "center"
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    className: "tbtn",
+    onClick: copyText,
+    style: {
+      fontSize: 10,
+      padding: "3px 10px"
+    }
+  }, copied ? "Copied ✓" : "📋 Copy"), /*#__PURE__*/React.createElement("button", {
+    className: "modal-close",
+    onClick: onClose
+  }, /*#__PURE__*/React.createElement(Icon, {
+    name: "close",
+    size: 14
+  })))), /*#__PURE__*/React.createElement("div", {
+    className: "modal-b",
+    style: {
+      padding: "0 18px 18px"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between",
+      padding: "16px 0 12px",
+      borderBottom: "1px solid var(--line-soft)"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      textAlign: "center",
+      flex: 1
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontFamily: "var(--fCond)",
+      fontSize: 10,
+      color: "var(--home)",
+      letterSpacing: "0.12em",
+      textTransform: "uppercase",
+      marginBottom: 4
+    }
+  }, homeTeam.name), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontFamily: "var(--fd)",
+      fontSize: 36,
+      fontWeight: 900,
+      color: "var(--home)",
+      lineHeight: 1
+    }
+  }, fmtScore(hS)), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontFamily: "var(--fm)",
+      fontSize: 13,
+      color: "var(--t3)",
+      marginTop: 2
+    }
+  }, hS.total, " pts")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      textAlign: "center",
+      padding: "0 12px"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontFamily: "var(--fd)",
+      fontSize: 18,
+      fontWeight: 700,
+      color: SCORE_COL
+    }
+  }, diff > 0 ? `+${diff}` : diff < 0 ? `${diff}` : "LEVEL"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontFamily: "var(--fCond)",
+      fontSize: 9,
+      color: "var(--t3)",
+      letterSpacing: "0.1em",
+      marginTop: 2
+    }
+  }, "H1")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      textAlign: "center",
+      flex: 1
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontFamily: "var(--fCond)",
+      fontSize: 10,
+      color: "var(--away)",
+      letterSpacing: "0.12em",
+      textTransform: "uppercase",
+      marginBottom: 4
+    }
+  }, awayTeam.name), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontFamily: "var(--fd)",
+      fontSize: 36,
+      fontWeight: 900,
+      color: "var(--away)",
+      lineHeight: 1
+    }
+  }, fmtScore(aS)), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontFamily: "var(--fm)",
+      fontSize: 13,
+      color: "var(--t3)",
+      marginTop: 2
+    }
+  }, aS.total, " pts"))), adherence !== null && /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between",
+      padding: "12px 0",
+      borderBottom: "1px solid var(--line-soft)"
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontFamily: "var(--fd)",
+      fontSize: 13,
+      fontWeight: 700,
+      color: "var(--t1)"
+    }
+  }, "Game Plan Adherence"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontFamily: "var(--fm)",
+      fontSize: 11,
+      color: "var(--t3)",
+      marginTop: 2
+    }
+  }, adherence >= 80 ? "On track — keep it up" : adherence >= 55 ? "Mostly there — 2–3 areas need attention" : "Off plan — significant adjustments needed at HT")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontFamily: "var(--fd)",
+      fontSize: 44,
+      fontWeight: 900,
+      lineHeight: 1,
+      color: adherence >= 80 ? "var(--score)" : adherence >= 55 ? "var(--gold)" : "var(--away)"
+    }
+  }, adherence)), /*#__PURE__*/React.createElement("div", {
+    style: {
+      paddingTop: 12,
+      borderBottom: "1px solid var(--line-soft)",
+      paddingBottom: 12
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontFamily: "var(--fCond)",
+      fontSize: 9,
+      color: "var(--t3)",
+      letterSpacing: "0.1em",
+      textTransform: "uppercase",
+      marginBottom: 8
+    }
+  }, "H1 Key Stats"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "1fr auto auto",
+      gap: "6px 12px",
+      alignItems: "center"
+    }
+  }, headlines.map(r => /*#__PURE__*/React.createElement(React.Fragment, {
+    key: r.label
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontFamily: "var(--fm)",
+      fontSize: 11,
+      color: "var(--t3)"
+    }
+  }, r.label), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontFamily: "var(--fd)",
+      fontSize: 13,
+      fontWeight: 700,
+      color: "var(--home)",
+      textAlign: "right"
+    }
+  }, r.home), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontFamily: "var(--fd)",
+      fontSize: 13,
+      fontWeight: 700,
+      color: "var(--away)",
+      textAlign: "right"
+    }
+  }, r.away))))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      paddingTop: 12,
+      display: "flex",
+      flexDirection: "column",
+      gap: 10
+    }
+  }, biggestIssue && /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: "10px 12px",
+      borderRadius: 8,
+      background: "var(--away-d)",
+      border: "1px solid var(--away)"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontFamily: "var(--fCond)",
+      fontSize: 9,
+      color: "var(--away)",
+      letterSpacing: "0.1em",
+      textTransform: "uppercase",
+      marginBottom: 4
+    }
+  }, "Biggest gap vs target"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontFamily: "var(--fd)",
+      fontSize: 13,
+      fontWeight: 700,
+      color: "var(--t1)"
+    }
+  }, biggestIssue.label), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontFamily: "var(--fm)",
+      fontSize: 11,
+      color: "var(--t2)",
+      marginTop: 2
+    }
+  }, "Currently ", biggestIssue.val, biggestIssue.unit || "", " \u2014 target is ", biggestIssue.target, biggestIssue.unit || "", "\xA0", /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: "var(--away)"
+    }
+  }, "(", biggestIssue.score, "/100)"))), topScorer.pts > 0 && /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: "10px 12px",
+      borderRadius: 8,
+      background: "var(--bg-2)",
+      border: "1px solid var(--line-soft)"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontFamily: "var(--fCond)",
+      fontSize: 9,
+      color: "var(--t3)",
+      letterSpacing: "0.1em",
+      textTransform: "uppercase",
+      marginBottom: 4
+    }
+  }, "Top scorer H1"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontFamily: "var(--fd)",
+      fontSize: 13,
+      fontWeight: 700,
+      color: "var(--home)"
+    }
+  }, topScorer.name), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontFamily: "var(--fm)",
+      fontSize: 11,
+      color: "var(--t3)",
+      marginTop: 2
+    }
+  }, topScorer.pts, " point", topScorer.pts !== 1 ? "s" : "", " from play"))))));
+}
+
+// ─── Game plan adherence score (0–100) ───────────────────────────────
+// Each condition is scored 0–100 based on how close actual is to target.
+// Higher-is-better: score = min(100, actual/target × 100)
+// Lower-is-better:  score = actual=0 → 100; else min(100, target/actual × 100)
+function calcAdherence(conditions, actual) {
   if (!conditions || !conditions.length) return null;
+  let sum = 0,
+    count = 0;
+  conditions.forEach(c => {
+    const val = actual[c.id];
+    if (val === undefined || val === null) return;
+    const tgt = Number(c.target) || 0;
+    let score;
+    if (c.trend === "higher") {
+      score = tgt > 0 ? Math.min(100, Math.round(val / tgt * 100)) : val > 0 ? 100 : 0;
+    } else {
+      // lower is better (fouls, goals conceded)
+      score = val === 0 ? 100 : tgt > 0 ? Math.min(100, Math.round(tgt / val * 100)) : 0;
+    }
+    sum += score;
+    count++;
+  });
+  return count ? Math.round(sum / count) : null;
+}
+function buildActualMetrics(events) {
   const h = aggregateStats(events, "home");
-  const a = aggregateStats(events, "away");
   const oppKosTotal = events.filter(e => !e.ignored && e.type === "kickout" && e.team === "away").length;
   const oppKosDisrupted = events.filter(e => !e.ignored && e.type === "kickout" && e.team === "away" && e.result === "lost").length;
-  const actual = {
+  return {
     conv: h.conv,
     shotRate: h.shotRate,
     prod: parseFloat(h.productivity) || 0,
@@ -2910,8 +3293,19 @@ function WinConditionsBar({
     koOpp: oppKosTotal ? Math.round(oppKosDisrupted / oppKosTotal * 100) : 0,
     foulsAgst: h.fouls
   };
+}
+function WinConditionsBar({
+  conditions,
+  events,
+  homeTeam,
+  awayTeam
+}) {
+  if (!conditions || !conditions.length) return null;
+  const actual = buildActualMetrics(events);
   const shown = conditions.filter(c => actual[c.id] !== undefined);
   if (!shown.length) return null;
+  const adherence = calcAdherence(shown, actual);
+  const scoreCol = adherence >= 80 ? "var(--score)" : adherence >= 55 ? "var(--gold)" : "var(--away)";
   return /*#__PURE__*/React.createElement("div", {
     className: "card",
     style: {
@@ -2919,9 +3313,45 @@ function WinConditionsBar({
     }
   }, /*#__PURE__*/React.createElement("div", {
     className: "card-h"
-  }, /*#__PURE__*/React.createElement("h3", null, "Game Plan Targets"), /*#__PURE__*/React.createElement("span", {
+  }, /*#__PURE__*/React.createElement("h3", null, "Game Plan"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 10
+    }
+  }, /*#__PURE__*/React.createElement("span", {
     className: "sec-aux"
-  }, homeTeam.name, " \xB7 live vs target")), /*#__PURE__*/React.createElement("div", {
+  }, homeTeam.name, " \xB7 live vs target"), adherence !== null && /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 6
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontFamily: "var(--fCond)",
+      fontSize: 9,
+      color: "var(--t3)",
+      letterSpacing: "0.1em",
+      textTransform: "uppercase"
+    }
+  }, "Adherence"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontFamily: "var(--fd)",
+      fontSize: 22,
+      fontWeight: 900,
+      color: scoreCol,
+      lineHeight: 1
+    }
+  }, adherence), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontFamily: "var(--fm)",
+      fontSize: 10,
+      color: "var(--t3)",
+      alignSelf: "flex-end",
+      paddingBottom: 1
+    }
+  }, "/100")))), /*#__PURE__*/React.createElement("div", {
     className: "card-b",
     style: {
       display: "flex",
@@ -2929,8 +3359,8 @@ function WinConditionsBar({
       gap: 8
     }
   }, shown.map(c => {
-    const val = actual[c.id];
-    const tgt = c.target;
+    const val = actual[c.id],
+      tgt = c.target;
     const higher = c.trend === "higher";
     const met = higher ? val >= tgt : val <= tgt;
     const pct = higher ? Math.min(100, tgt > 0 ? Math.round(val / tgt * 100) : 100) : Math.min(100, val > 0 ? Math.round(tgt / val * 100) : 100);
@@ -2956,7 +3386,7 @@ function WinConditionsBar({
         fontWeight: 600,
         color: met ? "var(--score)" : "var(--away)"
       }
-    }, val, c.unit, " ", /*#__PURE__*/React.createElement("span", {
+    }, val, c.unit, "\xA0", /*#__PURE__*/React.createElement("span", {
       style: {
         fontWeight: 400,
         color: "var(--t3)",
@@ -12010,6 +12440,7 @@ function App() {
   const [reportHTML, setReportHTML] = useState(null);
   const reportFrameRef = useRef(null);
   const [showSync, setShowSync] = useState(false);
+  const [showHTReport, setShowHTReport] = useState(false);
   const [syncMode, setSyncMode] = useState(null); // null | "host" | "viewer"
   const [syncCode, setSyncCode] = useState("");
   const [syncJoinCode, setSyncJoinCode] = useState("");
@@ -12530,6 +12961,13 @@ function App() {
     className: "spacer"
   }), /*#__PURE__*/React.createElement("button", {
     className: "tbtn",
+    onClick: () => setShowHTReport(true),
+    title: "Half-time report \u2014 readable summary for the dressing room"
+  }, /*#__PURE__*/React.createElement(Icon, {
+    name: "doc",
+    size: 12
+  }), " HT Report"), /*#__PURE__*/React.createElement("button", {
+    className: "tbtn",
     onClick: () => setShowSync(true),
     style: {
       position: "relative"
@@ -12816,7 +13254,14 @@ function App() {
     onClick: () => {
       stopSync();
     }
-  }, "Try again"))))), showAI && /*#__PURE__*/React.createElement(AIAnalystModal, {
+  }, "Try again"))))), showHTReport && /*#__PURE__*/React.createElement(HalfTimeReportModal, {
+    events: events,
+    homeTeam: homeTeam,
+    awayTeam: awayTeam,
+    conditions: conditions,
+    halfLength: halfLength,
+    onClose: () => setShowHTReport(false)
+  }), showAI && /*#__PURE__*/React.createElement(AIAnalystModal, {
     events: events,
     homeTeam: homeTeam,
     awayTeam: awayTeam,
