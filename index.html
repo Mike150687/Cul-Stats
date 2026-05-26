@@ -2157,7 +2157,27 @@ function PitchMarker({
 
 // ─── GAA Tracker · Stats utilities & live stats tab ──────────────────
 
-// Aggregations shared by Live + Detail tabs
+// ─── Fouls while in possession ───────────────────────────────────────
+// A foul is "in possession" when the very next non-foul event is a dead-ball
+// free/mark/45m awarded to the OPPOSING team. Those fouls count as T/O Lost
+// for the fouling team (and T/O Won for the team that earned the free).
+const DEAD_BALL_FREE = new Set(["free", "2free", "mark", "45m"]);
+function getFoulsInPossession(evs) {
+  const foulsInPoss = new Set();
+  const sorted = [...evs].sort((a, b) => (a.half || 1) - (b.half || 1) || a.time - b.time);
+  sorted.forEach((e, i) => {
+    if (e.type !== "foul") return;
+    for (let j = i + 1; j < sorted.length; j++) {
+      const ne = sorted[j];
+      if (ne.type === "foul") continue;
+      if (ne.type === "shot" && DEAD_BALL_FREE.has(ne.source) && ne.team !== e.team) foulsInPoss.add(e.id);
+      break;
+    }
+  });
+  return foulsInPoss;
+}
+
+// ─── Aggregations shared by Live + Detail tabs ───────────────────────
 function aggregateStats(events, teamId) {
   const evs = events.filter(e => !e.ignored);
   const opp = teamId === "home" ? "away" : "home";
@@ -2173,6 +2193,11 @@ function aggregateStats(events, teamId) {
   const totalPts = goals * 3 + twos * 2 + points;
   const toWon = evs.filter(e => e.type === "turnover" && (e.team === teamId && e.result === "won" || e.team === opp && e.result === "lost")).length;
   const toLost = evs.filter(e => e.type === "turnover" && (e.team === teamId && e.result === "lost" || e.team === opp && e.result === "won")).length;
+
+  // Fouls conceded while in possession count as T/O Lost (opponent earned a dead-ball free)
+  const foulsInPoss = getFoulsInPossession(evs);
+  const toWonTotal = toWon + evs.filter(e => e.type === "foul" && foulsInPoss.has(e.id) && e.team === opp).length;
+  const toLostTotal = toLost + evs.filter(e => e.type === "foul" && foulsInPoss.has(e.id) && e.team === teamId).length;
   const kos = evs.filter(e => e.type === "kickout" && e.team === teamId);
   const kosWon = kos.filter(k => k.result === "won").length;
   const fouls = evs.filter(e => e.type === "foul" && e.team === teamId);
@@ -2270,8 +2295,8 @@ function aggregateStats(events, teamId) {
     twos,
     points,
     totalPts,
-    toWon,
-    toLost,
+    toWon: toWonTotal,
+    toLost: toLostTotal,
     kos: kos.length,
     kosWon,
     kosPct: kos.length ? Math.round(kosWon / kos.length * 100) : 0,
@@ -3747,8 +3772,15 @@ function quartAggregate(events, teamId, homeAttacksLeft) {
   // Turnovers — use events_ so ignored events are excluded
   const toWon = events_.filter(e => e.type === "turnover" && (e.team === teamId && e.result === "won" || e.team === opp && e.result === "lost"));
   const toLost = events_.filter(e => e.type === "turnover" && (e.team === teamId && e.result === "lost" || e.team === opp && e.result === "won"));
-  const toWonQ = bucketize(toWon);
-  const toLostQ = bucketize(toLost);
+
+  // Fouls while in possession → append to toWon/toLost so they bucket into correct quarters
+  const foulsInPoss = getFoulsInPossession(events_);
+  const foulToWon = events_.filter(e => e.type === "foul" && foulsInPoss.has(e.id) && e.team === opp);
+  const foulToLost = events_.filter(e => e.type === "foul" && foulsInPoss.has(e.id) && e.team === teamId);
+  const toWonAll = [...toWon, ...foulToWon];
+  const toLostAll = [...toLost, ...foulToLost];
+  const toWonQ = bucketize(toWonAll);
+  const toLostQ = bucketize(toLostAll);
   // own half / opp half — use halDir stamped on the event (accounts for H2 end-swap)
   // attacksLeft=true  → team defends the RIGHT side → own half is x ≥ 50
   // attacksLeft=false → team defends the LEFT side  → own half is x < 50
@@ -3758,8 +3790,8 @@ function quartAggregate(events, teamId, homeAttacksLeft) {
     const attacksLeft = teamId === "home" ? halDir : !halDir;
     return attacksLeft ? e.loc.x >= 50 : e.loc.x < 50;
   };
-  const toWonOwn = bucketize(toWon.filter(inOwnHalf));
-  const toWonOpp = bucketize(toWon.filter(e => !inOwnHalf(e)));
+  const toWonOwn = bucketize(toWonAll.filter(inOwnHalf));
+  const toWonOpp = bucketize(toWonAll.filter(e => !inOwnHalf(e)));
   // T/O won → shot/score in same possession
   const toWonShot = bucketize(poss.filter(p => p.origin === "turnover" && p.shot).map(p => ({
     team: teamId,
@@ -3772,10 +3804,10 @@ function quartAggregate(events, teamId, homeAttacksLeft) {
     half: p.half
   })));
 
-  // Forced vs unforced (use turnover method: tackle/intercept = forced, mistake = unforced)
-  const toForcedW = bucketize(toWon.filter(e => e.method === "tackle" || e.method === "intercept"));
-  const toUnforcedW = bucketize(toWon.filter(e => e.method === "mistake"));
-  const toForcedL = bucketize(toLost.filter(e => e.method === "tackle"));
+  // Forced vs unforced (foul-in-possession T/Os count as forced lost)
+  const toForcedW = bucketize(toWonAll.filter(e => e.method === "tackle" || e.method === "intercept"));
+  const toUnforcedW = bucketize(toWonAll.filter(e => e.method === "mistake"));
+  const toForcedL = bucketize(toLostAll.filter(e => e.method === "tackle"));
 
   // Kickouts (own)
   const kos = events_.filter(e => e.type === "kickout" && e.team === teamId);
@@ -3839,8 +3871,8 @@ function quartAggregate(events, teamId, homeAttacksLeft) {
     oppKOScores,
     toScores,
     cleanScores,
-    toWon,
-    toLost,
+    toWon: toWonAll,
+    toLost: toLostAll,
     toWonQ,
     toLostQ,
     toWonOwn,
@@ -4106,6 +4138,7 @@ function DetailedStatsTab({
   awayTeam,
   homeAttacksLeft
 }) {
+  var _hSt$ownKOScores, _hSt$ownKOScores2, _hSt$ownKOScores3, _hSt$oppKOScores, _hSt$oppKOScores2, _hSt$oppKOScores3, _hSt$toScores, _hSt$toScores2, _hSt$toScores3, _hSt$cleanScores, _hSt$cleanScores2, _hSt$cleanScores3, _aSt$ownKOScores, _aSt$ownKOScores2, _aSt$ownKOScores3, _aSt$oppKOScores, _aSt$oppKOScores2, _aSt$oppKOScores3, _aSt$toScores, _aSt$toScores2, _aSt$toScores3, _aSt$cleanScores, _aSt$cleanScores2, _aSt$cleanScores3;
   const [teamFilter, setTeamFilter] = useState("both");
   const [collapsed, setCollapsed] = useState({});
   const showH = teamFilter !== "away";
@@ -4197,7 +4230,9 @@ function DetailedStatsTab({
   });
 
   // Format scores as G-2pt-P per quarter (e.g. "1-0-3")
+  // Guard against undefined buckets — any missing bucket returns "–" for that column
   const FScore = (gQ, tQ, pQ) => QCOLS.map(c => {
+    if (!gQ || !tQ || !pQ) return "–";
     const g = gQ[c.id] || 0,
       t = tQ[c.id] || 0,
       p = pQ[c.id] || 0;
@@ -4419,22 +4454,22 @@ function DetailedStatsTab({
     accent: "var(--home)"
   }), /*#__PURE__*/React.createElement(DR, {
     label: "Own kickout",
-    vals: FScore(hSt.ownKOScores.g, hSt.ownKOScores.t, hSt.ownKOScores.p),
+    vals: FScore((_hSt$ownKOScores = hSt.ownKOScores) == null ? void 0 : _hSt$ownKOScores.g, (_hSt$ownKOScores2 = hSt.ownKOScores) == null ? void 0 : _hSt$ownKOScores2.t, (_hSt$ownKOScores3 = hSt.ownKOScores) == null ? void 0 : _hSt$ownKOScores3.p),
     accent: "var(--home)",
     sub: true
   }), /*#__PURE__*/React.createElement(DR, {
     label: "Opp kickout",
-    vals: FScore(hSt.oppKOScores.g, hSt.oppKOScores.t, hSt.oppKOScores.p),
+    vals: FScore((_hSt$oppKOScores = hSt.oppKOScores) == null ? void 0 : _hSt$oppKOScores.g, (_hSt$oppKOScores2 = hSt.oppKOScores) == null ? void 0 : _hSt$oppKOScores2.t, (_hSt$oppKOScores3 = hSt.oppKOScores) == null ? void 0 : _hSt$oppKOScores3.p),
     accent: "var(--home)",
     sub: true
   }), /*#__PURE__*/React.createElement(DR, {
     label: "Turnover",
-    vals: FScore(hSt.toScores.g, hSt.toScores.t, hSt.toScores.p),
+    vals: FScore((_hSt$toScores = hSt.toScores) == null ? void 0 : _hSt$toScores.g, (_hSt$toScores2 = hSt.toScores) == null ? void 0 : _hSt$toScores2.t, (_hSt$toScores3 = hSt.toScores) == null ? void 0 : _hSt$toScores3.p),
     accent: "var(--home)",
     sub: true
   }), /*#__PURE__*/React.createElement(DR, {
     label: "Open / clean",
-    vals: FScore(hSt.cleanScores.g, hSt.cleanScores.t, hSt.cleanScores.p),
+    vals: FScore((_hSt$cleanScores = hSt.cleanScores) == null ? void 0 : _hSt$cleanScores.g, (_hSt$cleanScores2 = hSt.cleanScores) == null ? void 0 : _hSt$cleanScores2.t, (_hSt$cleanScores3 = hSt.cleanScores) == null ? void 0 : _hSt$cleanScores3.p),
     accent: "var(--home)",
     sub: true
   })), showA && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(TeamHdr, {
@@ -4442,22 +4477,22 @@ function DetailedStatsTab({
     accent: "var(--away)"
   }), /*#__PURE__*/React.createElement(DR, {
     label: "Own kickout",
-    vals: FScore(aSt.ownKOScores.g, aSt.ownKOScores.t, aSt.ownKOScores.p),
+    vals: FScore((_aSt$ownKOScores = aSt.ownKOScores) == null ? void 0 : _aSt$ownKOScores.g, (_aSt$ownKOScores2 = aSt.ownKOScores) == null ? void 0 : _aSt$ownKOScores2.t, (_aSt$ownKOScores3 = aSt.ownKOScores) == null ? void 0 : _aSt$ownKOScores3.p),
     accent: "var(--away)",
     sub: true
   }), /*#__PURE__*/React.createElement(DR, {
     label: "Opp kickout",
-    vals: FScore(aSt.oppKOScores.g, aSt.oppKOScores.t, aSt.oppKOScores.p),
+    vals: FScore((_aSt$oppKOScores = aSt.oppKOScores) == null ? void 0 : _aSt$oppKOScores.g, (_aSt$oppKOScores2 = aSt.oppKOScores) == null ? void 0 : _aSt$oppKOScores2.t, (_aSt$oppKOScores3 = aSt.oppKOScores) == null ? void 0 : _aSt$oppKOScores3.p),
     accent: "var(--away)",
     sub: true
   }), /*#__PURE__*/React.createElement(DR, {
     label: "Turnover",
-    vals: FScore(aSt.toScores.g, aSt.toScores.t, aSt.toScores.p),
+    vals: FScore((_aSt$toScores = aSt.toScores) == null ? void 0 : _aSt$toScores.g, (_aSt$toScores2 = aSt.toScores) == null ? void 0 : _aSt$toScores2.t, (_aSt$toScores3 = aSt.toScores) == null ? void 0 : _aSt$toScores3.p),
     accent: "var(--away)",
     sub: true
   }), /*#__PURE__*/React.createElement(DR, {
     label: "Open / clean",
-    vals: FScore(aSt.cleanScores.g, aSt.cleanScores.t, aSt.cleanScores.p),
+    vals: FScore((_aSt$cleanScores = aSt.cleanScores) == null ? void 0 : _aSt$cleanScores.g, (_aSt$cleanScores2 = aSt.cleanScores) == null ? void 0 : _aSt$cleanScores2.t, (_aSt$cleanScores3 = aSt.cleanScores) == null ? void 0 : _aSt$cleanScores3.p),
     accent: "var(--away)",
     sub: true
   }))), /*#__PURE__*/React.createElement(Sect, {
@@ -4828,7 +4863,8 @@ function DetailedStatsTab({
     showH: showH,
     showA: showA,
     isCol: isCol,
-    toggleSection: toggleSection
+    toggleSection: toggleSection,
+    homeAttacksLeft: homeAttacksLeft
   }));
 }
 function KPISummary({
@@ -5307,7 +5343,8 @@ function DetailedSectionsB({
   showH,
   showA,
   isCol,
-  toggleSection
+  toggleSection,
+  homeAttacksLeft
 }) {
   return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(Sect, {
     title: "Shooting Clock",
