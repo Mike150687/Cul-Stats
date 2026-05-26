@@ -4282,7 +4282,7 @@ function DetailedStatsTab({
       p = pQ[c.id] || 0;
     return g === 0 && t === 0 && p === 0 ? "–" : `${g}-${t}-${p}`;
   });
-  const SECTS = ["Shooting & Possession", "Turnovers", "Kickouts", "KO Win Type", "Expected Points", "Attack Speed", "Defensive T/O Zones", "Shooting Clock", "Consecutive Scoreless", "SQI", "Scoring Runs", "Half vs Half", "Productivity", "KO Targets", "Shot Quality by Zone", "Kickout Target Zones", "Individual Performance"];
+  const SECTS = ["Shooting & Possession", "Turnovers", "Kickouts", "KO Win Type", "Expected Points", "Attack Speed", "Defensive T/O Zones", "Shooting Clock", "Consecutive Scoreless", "SQI", "Scoring Runs", "Half vs Half", "Productivity", "KO Targets", "Shot Quality by Zone", "Shot Breakdown by Zone", "Kickout Target Zones", "Individual Performance"];
   return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
@@ -5550,6 +5550,25 @@ function DetailedSectionsB({
     showA: showA,
     homeAttacksLeft: homeAttacksLeft
   })), /*#__PURE__*/React.createElement(Sect, {
+    title: "Shot Breakdown by Zone",
+    open: !isCol("Shot Breakdown by Zone"),
+    onToggle: () => toggleSection("Shot Breakdown by Zone")
+  }), !isCol("Shot Breakdown by Zone") && /*#__PURE__*/React.createElement("div", {
+    className: "card",
+    style: {
+      borderTopLeftRadius: 0,
+      borderTopRightRadius: 0,
+      marginTop: -1,
+      padding: 14
+    }
+  }, /*#__PURE__*/React.createElement(ShotZoneBreakdown, {
+    events: events,
+    homeTeam: homeTeam,
+    awayTeam: awayTeam,
+    showH: showH,
+    showA: showA,
+    homeAttacksLeft: homeAttacksLeft
+  })), /*#__PURE__*/React.createElement(Sect, {
     title: "Kickout Target Zones",
     open: !isCol("Kickout Target Zones"),
     onToggle: () => toggleSection("Kickout Target Zones")
@@ -6688,6 +6707,321 @@ function IndividualPerformance({
   }, "\uD83D\uDCC4 #", p.num, " ", p.name))))));
 }
 
+// ─── Shot Breakdown by Zone ───────────────────────────────────────────
+// Grouped by shot type, then by sector number (S1–S12).
+function ShotZoneBreakdown({
+  events,
+  homeTeam,
+  awayTeam,
+  showH,
+  showA,
+  homeAttacksLeft
+}) {
+  const TYPES = [{
+    label: "Play",
+    key: "play",
+    sources: ["play", "2play"]
+  }, {
+    label: "Free",
+    key: "free",
+    sources: ["free", "2free", "mark"]
+  }, {
+    label: "45m",
+    key: "45m",
+    sources: ["45m"]
+  }, {
+    label: "Penalty",
+    key: "pen",
+    sources: ["penalty"]
+  }, {
+    label: "Sideline",
+    key: "side",
+    sources: ["side"]
+  }];
+  const compute = teamId => {
+    const shots = events.filter(e => !e.ignored && e.type === "shot" && e.team === teamId && e.loc);
+    // grid[typeKey][sector] = {n,xp,pts,scores}
+    const blank = () => ({
+      n: 0,
+      xp: 0,
+      pts: 0,
+      scores: 0
+    });
+    const grid = {};
+    TYPES.forEach(t => {
+      grid[t.key] = {};
+      for (let s = 1; s <= 12; s++) grid[t.key][s] = blank();
+    });
+    const grand = blank();
+    shots.forEach(s => {
+      var _SHOT_OUTCOMES$find5, _TYPES$find, _grid$typeKey;
+      const halDir = s.halDir !== undefined ? s.halDir : homeAttacksLeft;
+      const attacksLeft = teamId === "home" ? halDir : !halDir;
+      const normalX = attacksLeft ? s.loc.x : 100 - s.loc.x;
+      const isGA = ((_SHOT_OUTCOMES$find5 = SHOT_OUTCOMES.find(o => o.id === s.outcome)) == null ? void 0 : _SHOT_OUTCOMES$find5.goalAttempt) || false;
+      const is2pt = ["2play", "2free"].includes(s.source) || s.outcome === "2point";
+      const is45m = s.source === "45m";
+      const isPl = ["free", "2free", "mark", "45m", "penalty", "side"].includes(s.source);
+      const sec = shotSector(normalX, s.loc.y, isGA, is2pt, is45m, isPl, attacksLeft);
+      const typeKey = ((_TYPES$find = TYPES.find(t => t.sources.includes(s.source))) == null ? void 0 : _TYPES$find.key) || "play";
+      const xp = shotXP(s);
+      const pts = actualPts(s.outcome);
+      const scored = ["goal", "point", "2point"].includes(s.outcome) ? 1 : 0;
+      const cell = (_grid$typeKey = grid[typeKey]) == null ? void 0 : _grid$typeKey[sec];
+      if (cell) {
+        cell.n++;
+        cell.xp += xp;
+        cell.pts += pts;
+        cell.scores += scored;
+      }
+      grand.n++;
+      grand.xp += xp;
+      grand.pts += pts;
+      grand.scores += scored;
+    });
+    return {
+      grid,
+      grand
+    };
+  };
+  const fmt = d => {
+    if (!d || d.n === 0) return null;
+    return {
+      n: d.n,
+      xp: d.xp.toFixed(2),
+      pts: d.pts,
+      conv: Math.round(d.scores / d.n * 100),
+      xpD: +(d.pts - d.xp).toFixed(2)
+    };
+  };
+  const TH = ({
+    children,
+    right
+  }) => /*#__PURE__*/React.createElement("th", {
+    style: {
+      padding: "5px 8px",
+      fontFamily: "var(--fCond)",
+      fontSize: 10,
+      color: "var(--t3)",
+      letterSpacing: "0.07em",
+      textTransform: "uppercase",
+      textAlign: right ? "center" : "left",
+      borderBottom: "1.5px solid var(--line-soft)",
+      whiteSpace: "nowrap"
+    }
+  }, children);
+  const DataCells = ({
+    d,
+    bold,
+    accent
+  }) => {
+    if (!d) return /*#__PURE__*/React.createElement("td", {
+      colSpan: 5,
+      style: {
+        textAlign: "center",
+        color: "var(--t4)",
+        fontSize: 10,
+        padding: "5px 8px"
+      }
+    }, "\u2014");
+    const dCol = d.xpD >= 0 ? "var(--score)" : "var(--away)";
+    const w = bold ? {
+      fontWeight: 700
+    } : {};
+    return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("td", {
+      style: {
+        padding: "5px 8px",
+        textAlign: "center",
+        ...w,
+        fontFamily: "var(--fd)",
+        color: accent || "var(--t1)"
+      }
+    }, d.n), /*#__PURE__*/React.createElement("td", {
+      style: {
+        padding: "5px 8px",
+        textAlign: "center",
+        ...w,
+        fontFamily: "var(--fm)",
+        color: "var(--gold)"
+      }
+    }, d.xp), /*#__PURE__*/React.createElement("td", {
+      style: {
+        padding: "5px 8px",
+        textAlign: "center",
+        ...w,
+        fontFamily: "var(--fd)",
+        color: "var(--score)"
+      }
+    }, d.pts), /*#__PURE__*/React.createElement("td", {
+      style: {
+        padding: "5px 8px",
+        textAlign: "center",
+        ...w,
+        fontFamily: "var(--fm)",
+        color: "var(--t2)"
+      }
+    }, d.conv, "%"), /*#__PURE__*/React.createElement("td", {
+      style: {
+        padding: "5px 8px",
+        textAlign: "center",
+        ...w,
+        fontFamily: "var(--fm)",
+        color: dCol
+      }
+    }, d.xpD >= 0 ? "+" : "", d.xpD));
+  };
+  const renderTeam = (teamId, team, accent) => {
+    const {
+      grid,
+      grand
+    } = compute(teamId);
+    const grandFmt = fmt(grand);
+    if (!grandFmt) return /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontFamily: "var(--fm)",
+        fontSize: 12,
+        color: "var(--t3)",
+        padding: "12px 0"
+      }
+    }, "No shots logged yet.");
+    return /*#__PURE__*/React.createElement("div", {
+      style: {
+        marginBottom: 20
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontFamily: "var(--fd)",
+        fontSize: 11,
+        fontWeight: 700,
+        color: accent,
+        letterSpacing: "0.08em",
+        textTransform: "uppercase",
+        marginBottom: 8
+      }
+    }, team.name), /*#__PURE__*/React.createElement("div", {
+      style: {
+        overflowX: "auto"
+      }
+    }, /*#__PURE__*/React.createElement("table", {
+      style: {
+        width: "100%",
+        borderCollapse: "collapse",
+        minWidth: 380,
+        fontSize: 11
+      }
+    }, /*#__PURE__*/React.createElement("thead", null, /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement(TH, null, "Type"), /*#__PURE__*/React.createElement(TH, null, "Sector"), /*#__PURE__*/React.createElement(TH, {
+      right: true
+    }, "Shots"), /*#__PURE__*/React.createElement(TH, {
+      right: true
+    }, "xP"), /*#__PURE__*/React.createElement(TH, {
+      right: true
+    }, "Pts"), /*#__PURE__*/React.createElement(TH, {
+      right: true
+    }, "Conv"), /*#__PURE__*/React.createElement(TH, {
+      right: true
+    }, "xP\u0394"))), /*#__PURE__*/React.createElement("tbody", null, TYPES.map(type => {
+      // Only sectors with shots for this type
+      const sectorRows = [];
+      for (let s = 1; s <= 12; s++) {
+        const d = fmt(grid[type.key][s]);
+        if (d) sectorRows.push({
+          sec: s,
+          d
+        });
+      }
+      if (sectorRows.length === 0) return null;
+
+      // Compute type total
+      const typeTotal = {
+        n: 0,
+        xp: 0,
+        pts: 0,
+        scores: 0
+      };
+      for (let s = 1; s <= 12; s++) {
+        const c = grid[type.key][s];
+        typeTotal.n += c.n;
+        typeTotal.xp += c.xp;
+        typeTotal.pts += c.pts;
+        typeTotal.scores += c.scores;
+      }
+      const typeFmt = fmt(typeTotal);
+      return /*#__PURE__*/React.createElement(React.Fragment, {
+        key: type.key
+      }, sectorRows.map(({
+        sec,
+        d
+      }, ti) => /*#__PURE__*/React.createElement("tr", {
+        key: sec,
+        style: {
+          background: ti % 2 === 0 ? "var(--bg-2)" : "transparent",
+          borderBottom: "1px solid var(--bg-3)"
+        }
+      }, ti === 0 && /*#__PURE__*/React.createElement("td", {
+        rowSpan: sectorRows.length + 1,
+        style: {
+          padding: "6px 10px",
+          fontFamily: "var(--fd)",
+          fontSize: 12,
+          fontWeight: 800,
+          color: accent,
+          borderRight: "1px solid var(--line-soft)",
+          verticalAlign: "middle",
+          whiteSpace: "nowrap",
+          borderBottom: "1.5px solid var(--line-soft)"
+        }
+      }, type.label), /*#__PURE__*/React.createElement("td", {
+        style: {
+          padding: "5px 8px",
+          fontFamily: "var(--fm)",
+          color: "var(--t2)",
+          paddingLeft: 10
+        }
+      }, "S", sec), /*#__PURE__*/React.createElement(DataCells, {
+        d: d
+      }))), /*#__PURE__*/React.createElement("tr", {
+        style: {
+          background: "var(--bg-3)",
+          borderBottom: "1.5px solid var(--line-soft)"
+        }
+      }, /*#__PURE__*/React.createElement("td", {
+        style: {
+          padding: "5px 10px",
+          fontFamily: "var(--fm)",
+          fontSize: 11,
+          fontWeight: 700,
+          color: "var(--t1)",
+          paddingLeft: 10
+        }
+      }, "Total"), /*#__PURE__*/React.createElement(DataCells, {
+        d: typeFmt,
+        bold: true,
+        accent: accent
+      })));
+    }), /*#__PURE__*/React.createElement("tr", {
+      style: {
+        background: "var(--bg-1)",
+        borderTop: "2px solid var(--line-soft)"
+      }
+    }, /*#__PURE__*/React.createElement("td", {
+      colSpan: 2,
+      style: {
+        padding: "7px 10px",
+        fontFamily: "var(--fd)",
+        fontSize: 12,
+        fontWeight: 900,
+        color: "var(--t1)",
+        letterSpacing: "0.06em",
+        textTransform: "uppercase"
+      }
+    }, "Grand Total"), /*#__PURE__*/React.createElement(DataCells, {
+      d: grandFmt,
+      bold: true,
+      accent: accent
+    }))))));
+  };
+  return /*#__PURE__*/React.createElement("div", null, showH && renderTeam("home", homeTeam, "var(--home)"), showA && renderTeam("away", awayTeam, "var(--away)"));
+}
 // ─── Shot Quality by Zone ─────────────────────────────────────────────
 function ShotQualityZones({
   events,
@@ -8339,12 +8673,12 @@ function MiniEventRow({
   awayTeam,
   onEdit
 }) {
-  var _SHOT_OUTCOMES$find5;
+  var _SHOT_OUTCOMES$find6;
   if (e.type === "half") return null;
   const t = e.team === "home" ? homeTeam : awayTeam;
   const p = t == null ? void 0 : t.players.find(x => x.id === e.player);
   let label = e.type;
-  if (e.type === "shot") label = ((_SHOT_OUTCOMES$find5 = SHOT_OUTCOMES.find(o => o.id === e.outcome)) == null ? void 0 : _SHOT_OUTCOMES$find5.label) || "Shot";
+  if (e.type === "shot") label = ((_SHOT_OUTCOMES$find6 = SHOT_OUTCOMES.find(o => o.id === e.outcome)) == null ? void 0 : _SHOT_OUTCOMES$find6.label) || "Shot";
   if (e.type === "turnover") label = e.result === "won" ? "T/O Won" : "T/O Lost";
   if (e.type === "kickout") label = e.result === "won" ? "KO Won" : "KO Lost";
   if (e.type === "foul") label = "Foul";
@@ -11759,9 +12093,9 @@ function AIAnalystModal({
       }).filter(x => x.pts > 0 || x.misses > 0).sort((a, b) => b.pts - a.pts).slice(0, 5);
     };
     const recentShots = events.filter(e => e.type === "shot").slice(-8).map(s => {
-      var _SHOT_OUTCOMES$find6;
+      var _SHOT_OUTCOMES$find7;
       const team = s.team === "home" ? homeTeam.short : awayTeam.short;
-      const out = ((_SHOT_OUTCOMES$find6 = SHOT_OUTCOMES.find(o => o.id === s.outcome)) == null ? void 0 : _SHOT_OUTCOMES$find6.label) || s.outcome;
+      const out = ((_SHOT_OUTCOMES$find7 = SHOT_OUTCOMES.find(o => o.id === s.outcome)) == null ? void 0 : _SHOT_OUTCOMES$find7.label) || s.outcome;
       return `${fmt(s.time)} H${s.half} ${team} ${out} (${s.source}${s.pressure ? ", pressure" : ""})`;
     });
     const scorelessH = consecutiveScoreless(buildPossessions(events), "home");
