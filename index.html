@@ -4105,6 +4105,50 @@ function Note({
   }, "Target: ", text);
 }
 
+// ─── Error Boundary — catches crashes inside individual detail sections ──────
+class SectionErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = {
+      error: null
+    };
+  }
+  static getDerivedStateFromError(error) {
+    return {
+      error
+    };
+  }
+  render() {
+    if (this.state.error) {
+      return /*#__PURE__*/React.createElement("div", {
+        style: {
+          padding: 16,
+          background: "var(--away-d)",
+          border: "1px solid var(--away)",
+          borderRadius: 8,
+          margin: "8px 0"
+        }
+      }, /*#__PURE__*/React.createElement("div", {
+        style: {
+          fontFamily: "var(--fd)",
+          fontSize: 12,
+          fontWeight: 700,
+          color: "var(--away)",
+          marginBottom: 6
+        }
+      }, "Section error \u2014 ", this.props.label || "unknown section"), /*#__PURE__*/React.createElement("div", {
+        style: {
+          fontFamily: "var(--fm)",
+          fontSize: 11,
+          color: "var(--t2)",
+          wordBreak: "break-all"
+        }
+      }, this.state.error.message));
+    }
+    return this.props.children;
+  }
+}
+
 // ─── Shot Quality by Sector helper ──────────────────────────────────
 function computeSectorStats(shotList, teamId, homeAttacksLeft) {
   const stats = {};
@@ -4279,7 +4323,9 @@ function DetailedStatsTab({
     style: {
       fontSize: 10
     }
-  }, s.length > 18 ? s.slice(0, 16) + "…" : s)))), /*#__PURE__*/React.createElement("div", {
+  }, s.length > 18 ? s.slice(0, 16) + "…" : s)))), /*#__PURE__*/React.createElement(SectionErrorBoundary, {
+    label: "Score KPI summary"
+  }, /*#__PURE__*/React.createElement("div", {
     className: "col-4",
     style: {
       marginBottom: 16
@@ -4304,7 +4350,7 @@ function DetailedStatsTab({
     value: `${(aSt.ptsQ.tot - aSt.xpQ.tot).toFixed(2)}`,
     sub: `xP ${aSt.xpQ.tot.toFixed(2)} vs ${aSt.ptsQ.tot} actual`,
     accent: aSt.ptsQ.tot - aSt.xpQ.tot >= 0 ? "var(--score)" : "var(--away)"
-  })), /*#__PURE__*/React.createElement(Sect, {
+  }))), /*#__PURE__*/React.createElement(Sect, {
     title: "Shooting & Possession",
     open: !isCol("Shooting & Possession"),
     onToggle: () => toggleSection("Shooting & Possession")
@@ -4844,7 +4890,9 @@ function DetailedStatsTab({
     }
   }, /*#__PURE__*/React.createElement(Note, {
     text: "Where the team wins the ball. Own Half = defensive third; Atk = forward third."
-  }), /*#__PURE__*/React.createElement(DefensiveZones, {
+  }), /*#__PURE__*/React.createElement(SectionErrorBoundary, {
+    label: "Defensive T/O Zones"
+  }, /*#__PURE__*/React.createElement(DefensiveZones, {
     events: events,
     homeTeam: homeTeam,
     awayTeam: awayTeam,
@@ -4852,7 +4900,9 @@ function DetailedStatsTab({
     aSt: aSt,
     showH: showH,
     showA: showA
-  })), /*#__PURE__*/React.createElement(DetailedSectionsB, {
+  }))), /*#__PURE__*/React.createElement(SectionErrorBoundary, {
+    label: "Detailed Sections B"
+  }, /*#__PURE__*/React.createElement(DetailedSectionsB, {
     events: events,
     homeTeam: homeTeam,
     awayTeam: awayTeam,
@@ -4865,7 +4915,7 @@ function DetailedStatsTab({
     isCol: isCol,
     toggleSection: toggleSection,
     homeAttacksLeft: homeAttacksLeft
-  }));
+  })));
 }
 function KPISummary({
   label,
@@ -13072,12 +13122,14 @@ function App() {
     half: half,
     halfLength: halfLength,
     conditions: conditions
-  }), tab === "detailed" && /*#__PURE__*/React.createElement(DetailedStatsTab, {
+  }), tab === "detailed" && /*#__PURE__*/React.createElement(SectionErrorBoundary, {
+    label: "Detailed Stats Tab"
+  }, /*#__PURE__*/React.createElement(DetailedStatsTab, {
     events: events,
     homeTeam: homeTeam,
     awayTeam: awayTeam,
     homeAttacksLeft: homeAttacksLeft
-  }), tab === "lineup" && /*#__PURE__*/React.createElement(LineupTab, {
+  })), tab === "lineup" && /*#__PURE__*/React.createElement(LineupTab, {
     events: events,
     homeTeam: homeTeam,
     awayTeam: awayTeam
