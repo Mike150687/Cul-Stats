@@ -825,6 +825,7 @@ const OUTCOME_COLORS = {
   postP: "var(--gold)",
   blocked: "var(--t3)",
   saved: "oklch(0.65 0.12 200)",
+  saved45: "oklch(0.65 0.12 200)",
   "45": "var(--violet)",
   short: "var(--t3)"
 };
@@ -1448,7 +1449,7 @@ function buildPossessions(events) {
       };
     }
     cur.events.push(e);
-    if (e.type === "shot" && ["goal", "point", "2point", "wideG", "wideP", "short", "45"].includes(e.outcome)) {
+    if (e.type === "shot" && ["goal", "point", "2point", "wideG", "wideP", "postG", "postP", "saved", "saved45", "short", "45"].includes(e.outcome)) {
       close(e.time);
     }
     if (e.type === "turnover" && e.result === "lost") {
@@ -6856,7 +6857,7 @@ function ShotZoneBreakdown({
       const is45m = s.source === "45m";
       const isPl = ["free", "2free", "mark", "45m", "penalty", "side"].includes(s.source);
       const sec = shotSector(normalX, s.loc.y, isGA, is2pt, is45m, isPl, attacksLeft);
-      const typeKey = ((_TYPES$find = TYPES.find(t => t.sources.includes(s.source) && (t.ga === null || t.ga === isGA))) == null ? void 0 : _TYPES$find.key) || "play_pt";
+      const typeKey = ((_TYPES$find = TYPES.find(t => t.sources.includes(s.source) && (t.ga === null || t.ga === isGA))) == null ? void 0 : _TYPES$find.key) || (isGA ? "play_goal" : "play_pt");
       // xP is looked up directly from XP_TABLE using the type classification.
       // This ensures "Play — Pt" always uses row.play and "Play — Goal" always
       // uses row.gPlay, keeping xP consistent with which row the shot appears in.
