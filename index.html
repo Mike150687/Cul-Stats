@@ -1434,7 +1434,7 @@ function buildPossessions(events) {
     const newPoss = !cur || cur.team !== e.team;
     if (newPoss) {
       close(e.time);
-      const origin = e.type === "turnover" && e.result === "won" ? "turnover" : "open";
+      const origin = e.type === "throwIn" ? "throwIn" : e.type === "turnover" && e.result === "won" ? "turnover" : "open";
       cur = {
         team: e.team,
         startTime: e.time,
@@ -2913,6 +2913,82 @@ function LiveStatsTab({
 }
 
 // ─── Win Conditions Live Bar ──────────────────────────────────────────
+// ─── Throw-In Modal ───────────────────────────────────────────────────
+function ThrowInModal({
+  half,
+  homeTeam,
+  awayTeam,
+  onSelect
+}) {
+  return /*#__PURE__*/React.createElement("div", {
+    className: "modal-shade"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "modal",
+    style: {
+      maxWidth: 340
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "modal-h"
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    className: "tag"
+  }, half === "h2" ? "H2" : "H1", " THROW-IN"), /*#__PURE__*/React.createElement("div", {
+    className: "ttl"
+  }, "Who won the throw-in?"))), /*#__PURE__*/React.createElement("div", {
+    className: "modal-b",
+    style: {
+      padding: "12px 18px 20px",
+      display: "flex",
+      flexDirection: "column",
+      gap: 10
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontFamily: "var(--fm)",
+      fontSize: 12,
+      color: "var(--t3)",
+      marginBottom: 4
+    }
+  }, "The winning team begins the half in possession."), /*#__PURE__*/React.createElement("button", {
+    onClick: () => onSelect("home"),
+    style: {
+      padding: "14px 20px",
+      borderRadius: 10,
+      background: "var(--home-d)",
+      border: "2px solid var(--home)",
+      fontFamily: "var(--fd)",
+      fontSize: 16,
+      fontWeight: 800,
+      color: "var(--home)",
+      letterSpacing: "0.04em"
+    }
+  }, homeTeam.name), /*#__PURE__*/React.createElement("button", {
+    onClick: () => onSelect("away"),
+    style: {
+      padding: "14px 20px",
+      borderRadius: 10,
+      background: "var(--away-d)",
+      border: "2px solid var(--away)",
+      fontFamily: "var(--fd)",
+      fontSize: 16,
+      fontWeight: 800,
+      color: "var(--away)",
+      letterSpacing: "0.04em"
+    }
+  }, awayTeam.name), /*#__PURE__*/React.createElement("button", {
+    onClick: () => onSelect(null),
+    style: {
+      padding: "8px",
+      borderRadius: 8,
+      background: "transparent",
+      border: "1px solid var(--line-soft)",
+      fontFamily: "var(--fm)",
+      fontSize: 12,
+      color: "var(--t3)",
+      marginTop: 4
+    }
+  }, "Skip (no possession recorded)"))));
+}
+
 // ─── Half-Time Report Modal ───────────────────────────────────────────
 function HalfTimeReportModal({
   events,
@@ -8139,6 +8215,10 @@ function LogTab({
       text: "Card",
       sub: e.card
     };
+    if (e.type === "throwIn") return {
+      text: "Throw-In Won",
+      sub: "Half start"
+    };
     return {
       text: e.type
     };
@@ -8683,6 +8763,7 @@ function MiniEventRow({
   if (e.type === "kickout") label = e.result === "won" ? "KO Won" : "KO Lost";
   if (e.type === "foul") label = "Foul";
   if (e.type === "sub") label = "Sub";
+  if (e.type === "throwIn") label = "Throw-In Won";
   const dotCol = e.type === "shot" ? OUTCOME_COLORS[e.outcome] || "var(--t3)" : e.type === "turnover" ? e.result === "won" ? "var(--score)" : "var(--away)" : e.type === "kickout" ? e.result === "won" ? "var(--score)" : "var(--away)" : e.type === "foul" ? "var(--gold)" : "var(--t3)";
   return /*#__PURE__*/React.createElement("div", {
     className: "evrow",
@@ -12842,6 +12923,7 @@ function App() {
   const reportFrameRef = useRef(null);
   const [showSync, setShowSync] = useState(false);
   const [showHTReport, setShowHTReport] = useState(false);
+  const [showThrowIn, setShowThrowIn] = useState(null); // null | "h1" | "h2"
   const [syncMode, setSyncMode] = useState(null); // null | "host" | "viewer"
   const [syncCode, setSyncCode] = useState("");
   const [syncJoinCode, setSyncJoinCode] = useState("");
@@ -12929,9 +13011,9 @@ function App() {
   };
   const handleHalfAction = action => {
     if (action === "start_h1") {
-      setPhase("live");
-      setRunning(true);
-    } else if (action === "end_half") {
+      setShowThrowIn("h1");
+    } // prompt throw-in first
+    else if (action === "end_half") {
       setRunning(false);
       if (half === 1) {
         setPhase("ht");
@@ -12939,11 +13021,31 @@ function App() {
         setPhase("ft");
       }
     } else if (action === "start_h2") {
+      setShowThrowIn("h2");
+    } // prompt throw-in first
+  };
+  const handleThrowIn = winningTeam => {
+    const isH2 = showThrowIn === "h2";
+    // Advance half state
+    if (isH2) {
       setHalf(2);
       setSeconds(0);
-      setPhase("live");
-      setRunning(true);
     }
+    setPhase("live");
+    setRunning(true);
+    setShowThrowIn(null);
+    // Log the throw-in event (time=0, half=1 or 2)
+    const h = isH2 ? 2 : 1;
+    const halDir = isH2 ? !homeAttacksLeft : homeAttacksLeft;
+    const ev = {
+      id: `ev-${Date.now()}-throwIn`,
+      type: "throwIn",
+      team: winningTeam,
+      time: 0,
+      half: h,
+      halDir
+    };
+    setEvents(es => [...es, ev]);
   };
   const handleSave = async () => {
     setSaveStatus("saving");
@@ -13657,7 +13759,12 @@ function App() {
     onClick: () => {
       stopSync();
     }
-  }, "Try again"))))), showHTReport && /*#__PURE__*/React.createElement(HalfTimeReportModal, {
+  }, "Try again"))))), showThrowIn && /*#__PURE__*/React.createElement(ThrowInModal, {
+    half: showThrowIn,
+    homeTeam: homeTeam,
+    awayTeam: awayTeam,
+    onSelect: handleThrowIn
+  }), showHTReport && /*#__PURE__*/React.createElement(HalfTimeReportModal, {
     events: events,
     homeTeam: homeTeam,
     awayTeam: awayTeam,
