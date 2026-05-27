@@ -6857,7 +6857,38 @@ function ShotZoneBreakdown({
       const isPl = ["free", "2free", "mark", "45m", "penalty", "side"].includes(s.source);
       const sec = shotSector(normalX, s.loc.y, isGA, is2pt, is45m, isPl, attacksLeft);
       const typeKey = ((_TYPES$find = TYPES.find(t => t.sources.includes(s.source) && (t.ga === null || t.ga === isGA))) == null ? void 0 : _TYPES$find.key) || "play_pt";
-      const xp = shotXP(s);
+      // xP is looked up directly from XP_TABLE using the type classification.
+      // This ensures "Play — Pt" always uses row.play and "Play — Goal" always
+      // uses row.gPlay, keeping xP consistent with which row the shot appears in.
+      const row = XP_TABLE[sec];
+      let xp = 0;
+      if (row) {
+        switch (typeKey) {
+          case "play_pt":
+            xp = row.play;
+            break;
+          case "play_goal":
+            xp = row.gPlay;
+            break;
+          case "free_pt":
+            xp = row.free;
+            break;
+          case "free_goal":
+            xp = row.gFree;
+            break;
+          case "45m":
+            xp = row.f45;
+            break;
+          case "pen":
+            xp = row.pen;
+            break;
+          case "side":
+            xp = row.side;
+            break;
+          default:
+            xp = row.play;
+        }
+      }
       const pts = actualPts(s.outcome);
       const scored = ["goal", "point", "2point"].includes(s.outcome) ? 1 : 0;
       const cell = (_grid$typeKey = grid[typeKey]) == null ? void 0 : _grid$typeKey[sec];
