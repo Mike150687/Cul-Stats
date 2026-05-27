@@ -814,6 +814,10 @@ const SHOT_SOURCES = [{
   id: "penalty",
   label: "Penalty",
   desc: "Penalty kick"
+}, {
+  id: "side",
+  label: "Sideline",
+  desc: "Sideline cut"
 }];
 const OUTCOME_COLORS = {
   goal: "var(--score)",
@@ -1421,7 +1425,7 @@ function buildPossessions(events) {
           continued: true
         };
         pendingResume = null;
-        if (["goal", "point", "2point", "wideG", "wideP", "short", "45"].includes(e.outcome)) {
+        if (["goal", "point", "2point", "wideG", "wideP", "postG", "postP", "saved", "saved45", "blocked", "short", "45"].includes(e.outcome)) {
           close(e.time);
         }
         return;
@@ -1449,7 +1453,7 @@ function buildPossessions(events) {
       };
     }
     cur.events.push(e);
-    if (e.type === "shot" && ["goal", "point", "2point", "wideG", "wideP", "postG", "postP", "saved", "saved45", "short", "45"].includes(e.outcome)) {
+    if (e.type === "shot" && ["goal", "point", "2point", "wideG", "wideP", "postG", "postP", "saved", "saved45", "blocked", "short", "45"].includes(e.outcome)) {
       close(e.time);
     }
     if (e.type === "turnover" && e.result === "lost") {
@@ -6522,18 +6526,19 @@ function IndividualPerformance({
   showH,
   showA
 }) {
+  const evs = events.filter(e => !e.ignored);
   const compute = (tid, teamObj) => {
-    const pids = new Set(events.filter(e => e.team === tid && (e.type === "shot" || e.type === "turnover") && e.player).map(e => e.player));
+    const pids = new Set(evs.filter(e => e.team === tid && (e.type === "shot" || e.type === "turnover") && e.player).map(e => e.player));
     return [...pids].map(pid => {
-      const shots = events.filter(e => e.type === "shot" && e.team === tid && e.player === pid);
+      const shots = evs.filter(e => e.type === "shot" && e.team === tid && e.player === pid);
       const goals = shots.filter(s => s.outcome === "goal").length;
       const twos = shots.filter(s => s.outcome === "2point").length;
       const pts = shots.filter(s => s.outcome === "point").length;
       const actPts = goals * 3 + twos * 2 + pts;
       const xp = shots.reduce((s, e) => s + shotXP(e), 0);
-      const toW = events.filter(e => e.type === "turnover" && e.team === tid && e.result === "won" && e.player === pid).length;
-      const toL = events.filter(e => e.type === "turnover" && e.team === tid && e.result === "lost" && e.player === pid).length;
-      const fl = events.filter(e => e.type === "foul" && e.team === tid && e.player === pid).length;
+      const toW = evs.filter(e => e.type === "turnover" && e.team === tid && e.result === "won" && e.player === pid).length;
+      const toL = evs.filter(e => e.type === "turnover" && e.team === tid && e.result === "lost" && e.player === pid).length;
+      const fl = evs.filter(e => e.type === "foul" && e.team === tid && e.player === pid).length;
       const p = teamObj.players.find(pl => pl.id === pid);
       return {
         pid,
