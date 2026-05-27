@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
-<head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/><meta name="mobile-web-app-capable" content="yes"/><meta name="theme-color" content="#0b0c11"/><title>GAA Match Tracker</title><style>*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}html,body{height:100%;background:#0b0c11;color:#edeae4;-webkit-tap-highlight-color:transparent;overscroll-behavior:none;}#root{min-height:100%;display:flex;flex-direction:column;}</style></head><body><div id="root"></div><script>/**
+<head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/><title>GAA Match Tracker</title><style>*,*::before,*::after{box-sizing:border-box;}html,body{height:100%;background:#0b0c11;color:#edeae4;}#root{min-height:100%;display:flex;flex-direction:column;}</style></head><body><div id="root"></div><script>/**
  * @license React
  * react.production.min.js
  *
@@ -1210,7 +1210,9 @@ function shotSector(normalX, y, isGoalAttempt, is2PointAttempt, is45m, isPlacedB
   const yOff = attacksLeft ? y <= 30 ? 0 : y <= 70 ? 1 : 2 // attacking left
   : y > 70 ? 0 : y > 30 ? 1 : 2; // attacking right
   let zone;
-  if (normalX >= 31) {
+  if (is45m) {
+    zone = 1; // → 4–6  45m kicks always from the 45m line
+  } else if (normalX >= 31) {
     zone = 0; // → 1–3  beyond 45m
   } else if (normalX > 14 && is2PointAttempt) {
     zone = 1; // → 4–6  20m–45m, 2-pt
@@ -1242,7 +1244,7 @@ function shotXP(event) {
   const isGoalAttempt = ((_SHOT_OUTCOMES$find = SHOT_OUTCOMES.find(o => o.id === outcome)) == null ? void 0 : _SHOT_OUTCOMES$find.goalAttempt) || false;
   const is2PointAttempt = outcome === "2point" || src === "2play" || src === "2free";
   const is45m = src === "45m";
-  const isPlacedBall = ["free", "mark"].includes(src);
+  const isPlacedBall = ["free", "2free", "mark", "45m", "penalty", "side"].includes(src);
   if (src === "penalty") return 2.321;
   const sector = shotSector(normalX, y, isGoalAttempt, is2PointAttempt, is45m, isPlacedBall, attacksLeft);
   const row = XP_TABLE[sector];
