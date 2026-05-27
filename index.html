@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
-<head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/><title>GAA Match Tracker</title><style>*,*::before,*::after{box-sizing:border-box;}html,body{height:100%;background:#0b0c11;color:#edeae4;}#root{min-height:100%;display:flex;flex-direction:column;}</style></head><body><div id="root"></div><script>/**
+<head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/><meta name="mobile-web-app-capable" content="yes"/><meta name="theme-color" content="#0b0c11"/><title>GAA Match Tracker</title><style>*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}html,body{height:100%;background:#0b0c11;color:#edeae4;-webkit-tap-highlight-color:transparent;overscroll-behavior:none;}#root{min-height:100%;display:flex;flex-direction:column;}</style></head><body><div id="root"></div><script>/**
  * @license React
  * react.production.min.js
  *
@@ -6796,25 +6796,40 @@ function ShotZoneBreakdown({
   homeAttacksLeft
 }) {
   const TYPES = [{
-    label: "Play",
-    key: "play",
-    sources: ["play", "2play"]
+    label: "Play — Pt",
+    key: "play_pt",
+    sources: ["play", "2play"],
+    ga: false
   }, {
-    label: "Free",
-    key: "free",
-    sources: ["free", "2free", "mark"]
+    label: "Play — Goal",
+    key: "play_goal",
+    sources: ["play", "2play"],
+    ga: true
+  }, {
+    label: "Free — Pt",
+    key: "free_pt",
+    sources: ["free", "2free", "mark"],
+    ga: false
+  }, {
+    label: "Free — Goal",
+    key: "free_goal",
+    sources: ["free", "2free", "mark"],
+    ga: true
   }, {
     label: "45m",
     key: "45m",
-    sources: ["45m"]
+    sources: ["45m"],
+    ga: null
   }, {
     label: "Penalty",
     key: "pen",
-    sources: ["penalty"]
+    sources: ["penalty"],
+    ga: null
   }, {
     label: "Sideline",
     key: "side",
-    sources: ["side"]
+    sources: ["side"],
+    ga: null
   }];
   const compute = teamId => {
     const shots = events.filter(e => !e.ignored && e.type === "shot" && e.team === teamId && e.loc);
@@ -6841,7 +6856,7 @@ function ShotZoneBreakdown({
       const is45m = s.source === "45m";
       const isPl = ["free", "2free", "mark", "45m", "penalty", "side"].includes(s.source);
       const sec = shotSector(normalX, s.loc.y, isGA, is2pt, is45m, isPl, attacksLeft);
-      const typeKey = ((_TYPES$find = TYPES.find(t => t.sources.includes(s.source))) == null ? void 0 : _TYPES$find.key) || "play";
+      const typeKey = ((_TYPES$find = TYPES.find(t => t.sources.includes(s.source) && (t.ga === null || t.ga === isGA))) == null ? void 0 : _TYPES$find.key) || "play_pt";
       const xp = shotXP(s);
       const pts = actualPts(s.outcome);
       const scored = ["goal", "point", "2point"].includes(s.outcome) ? 1 : 0;
