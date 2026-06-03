@@ -11616,56 +11616,115 @@ function SavedMatchesSection() {
 function SeasonStatsSection({
   homeTeam
 }) {
-  var _seasonStats$, _seasonStats$2, _seasonStats$3;
-  // Mock season aggregates
-  const seasonStats = homeTeam.players.slice(0, 15).map((p, i) => {
-    // Pseudo-random but stable values
-    const seed = p.id.charCodeAt(0) + (p.id.charCodeAt(2) || 0);
-    const apps = 5 + seed % 3;
-    const goals = seed % 4 === 0 ? 1 + seed % 3 : 0;
-    const points = Math.max(0, seed * 7 % 18 - 4);
-    const twoPts = seed % 5 === 0 ? 1 : 0;
-    const shots = points + goals + Math.floor(seed * 3 % 10);
-    const conv = shots ? Math.round((points + goals + twoPts) / shots * 100) : 0;
-    const toW = seed % 11;
-    const toL = seed % 7;
-    const fouls = seed % 4;
-    const xPDelta = (seed * 11 % 20 - 10) / 10;
-    return {
-      p,
-      apps,
-      goals,
-      twoPts,
-      points,
-      shots,
-      conv,
-      toW,
-      toL,
-      fouls,
-      xPDelta,
-      totalPts: goals * 3 + twoPts * 2 + points
-    };
-  }).sort((a, b) => b.totalPts - a.totalPts);
-  const totals = seasonStats.reduce((a, r) => ({
-    apps: a.apps + r.apps,
-    goals: a.goals + r.goals,
-    twoPts: a.twoPts + r.twoPts,
-    points: a.points + r.points,
-    shots: a.shots + r.shots,
-    totalPts: a.totalPts + r.totalPts,
-    toW: a.toW + r.toW,
-    toL: a.toL + r.toL,
-    fouls: a.fouls + r.fouls
-  }), {
-    apps: 0,
+  const [seasonData, setSeasonData] = useState(null); // null = loading
+
+  useEffect(() => {
+    listMatches().then(all => {
+      const homeMatches = all.filter(m => {
+        var _m$homeTeam;
+        return (((_m$homeTeam = m.homeTeam) == null ? void 0 : _m$homeTeam.name) || "") === homeTeam.name;
+      });
+
+      // Aggregate player stats across all home matches
+      const playerMap = {}; // playerName → stats
+      let teamToW = 0,
+        teamToL = 0;
+      homeMatches.forEach(m => {
+        var _m$homeTeam2;
+        const evs = (m.events || []).filter(e => !e.ignored && !e._synthetic);
+        const h = aggregateStats(evs, "home");
+        teamToW += h.toWon || 0;
+        teamToL += h.toLost || 0;
+        const matchPlayers = ((_m$homeTeam2 = m.homeTeam) == null ? void 0 : _m$homeTeam2.players) || [];
+        evs.forEach(e => {
+          if (e.team !== "home" || !e.player) return;
+          const pObj = matchPlayers.find(p => p.id === e.player);
+          if (!pObj) return;
+          const key = pObj.name;
+          if (!playerMap[key]) playerMap[key] = {
+            name: pObj.name,
+            num: pObj.num,
+            pos: pObj.pos || 99,
+            apps: new Set(),
+            goals: 0,
+            twos: 0,
+            pts: 0,
+            shots: 0,
+            toW: 0,
+            toL: 0,
+            fouls: 0,
+            xp: 0
+          };
+          playerMap[key].apps.add(m.id);
+          if (e.type === "shot") {
+            playerMap[key].shots++;
+            if (e.outcome === "goal") playerMap[key].goals++;else if (e.outcome === "2point") playerMap[key].twos++;else if (e.outcome === "point") playerMap[key].pts++;
+            playerMap[key].xp += shotXP(e);
+          }
+          if (e.type === "turnover") {
+            if (e.result === "won") playerMap[key].toW++;else playerMap[key].toL++;
+          }
+          if (e.type === "foul") playerMap[key].fouls++;
+        });
+      });
+      const rows = Object.values(playerMap).map(p => {
+        const totalPts = p.goals * 3 + p.twos * 2 + p.pts;
+        const conv = p.shots ? Math.round((p.goals + p.twos + p.pts) / p.shots * 100) : 0;
+        return {
+          ...p,
+          apps: p.apps.size,
+          totalPts,
+          conv,
+          xpDiff: +(totalPts - p.xp).toFixed(2)
+        };
+      }).filter(p => p.shots > 0 || p.toW > 0 || p.toL > 0 || p.fouls > 0).sort((a, b) => a.pos - b.pos || b.totalPts - a.totalPts);
+      const totals = rows.reduce((a, r) => ({
+        goals: a.goals + r.goals,
+        twos: a.twos + r.twos,
+        pts: a.pts + r.pts,
+        shots: a.shots + r.shots,
+        totalPts: a.totalPts + r.totalPts,
+        toW: a.toW + r.toW,
+        toL: a.toL + r.toL,
+        fouls: a.fouls + r.fouls
+      }), {
+        goals: 0,
+        twos: 0,
+        pts: 0,
+        shots: 0,
+        totalPts: 0,
+        toW: 0,
+        toL: 0,
+        fouls: 0
+      });
+      setSeasonData({
+        rows,
+        totals,
+        teamToW,
+        teamToL,
+        matches: homeMatches.length
+      });
+    });
+  }, [homeTeam.name]);
+  if (seasonData === null) return /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: 20,
+      textAlign: "center",
+      color: "var(--t3)",
+      fontSize: 12
+    }
+  }, "Loading season data\u2026");
+  const {
+    rows,
+    totals,
+    teamToW,
+    teamToL,
+    matches
+  } = seasonData;
+  const topScorer = rows[0];
+  const topGoals = rows.reduce((m, r) => r.goals > m.goals ? r : m, {
     goals: 0,
-    twoPts: 0,
-    points: 0,
-    shots: 0,
-    totalPts: 0,
-    toW: 0,
-    toL: 0,
-    fouls: 0
+    name: "–"
   });
   return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
     className: "sec"
@@ -11675,7 +11734,7 @@ function SeasonStatsSection({
     className: "sec-rule"
   }), /*#__PURE__*/React.createElement("div", {
     className: "sec-aux"
-  }, "6 matches \xB7 2026 season")), /*#__PURE__*/React.createElement("div", {
+  }, matches, " match", matches !== 1 ? "es" : "", " in storage")), /*#__PURE__*/React.createElement("div", {
     className: "col-4",
     style: {
       marginBottom: 20
@@ -11689,9 +11748,9 @@ function SeasonStatsSection({
     style: {
       color: "var(--gold)"
     }
-  }, (_seasonStats$ = seasonStats[0]) == null ? void 0 : _seasonStats$.totalPts), /*#__PURE__*/React.createElement("div", {
+  }, (topScorer == null ? void 0 : topScorer.totalPts) || "–"), /*#__PURE__*/React.createElement("div", {
     className: "kpi-s"
-  }, "#", (_seasonStats$2 = seasonStats[0]) == null ? void 0 : _seasonStats$2.p.num, " ", (_seasonStats$3 = seasonStats[0]) == null ? void 0 : _seasonStats$3.p.name)), /*#__PURE__*/React.createElement("div", {
+  }, topScorer ? `#${topScorer.num || "–"} ${topScorer.name}` : "No data")), /*#__PURE__*/React.createElement("div", {
     className: "kpi"
   }, /*#__PURE__*/React.createElement("div", {
     className: "kpi-l"
@@ -11700,19 +11759,15 @@ function SeasonStatsSection({
     style: {
       color: "var(--score)"
     }
-  }, seasonStats.reduce((m, r) => Math.max(m, r.goals), 0)), /*#__PURE__*/React.createElement("div", {
+  }, topGoals.goals || "–"), /*#__PURE__*/React.createElement("div", {
     className: "kpi-s"
-  }, (seasonStats.find(r => r.goals === seasonStats.reduce((m, x) => Math.max(m, x.goals), 0)) || {
-    p: {
-      name: "–"
-    }
-  }).p.name)), /*#__PURE__*/React.createElement("div", {
+  }, topGoals.goals ? topGoals.name : "No data")), /*#__PURE__*/React.createElement("div", {
     className: "kpi"
   }, /*#__PURE__*/React.createElement("div", {
     className: "kpi-l"
   }, "Avg Conversion"), /*#__PURE__*/React.createElement("div", {
     className: "kpi-v"
-  }, Math.round(totals.shots ? (totals.goals + totals.twoPts + totals.points) / totals.shots * 100 : 0), /*#__PURE__*/React.createElement("span", {
+  }, totals.shots ? Math.round((totals.goals + totals.twos + totals.pts) / totals.shots * 100) : 0, /*#__PURE__*/React.createElement("span", {
     style: {
       color: "var(--t3)",
       fontSize: 22
@@ -11723,22 +11778,29 @@ function SeasonStatsSection({
     className: "kpi"
   }, /*#__PURE__*/React.createElement("div", {
     className: "kpi-l"
-  }, "T/O Diff"), /*#__PURE__*/React.createElement("div", {
+  }, "T/O Net (team)"), /*#__PURE__*/React.createElement("div", {
     className: "kpi-v",
     style: {
-      color: totals.toW >= totals.toL ? "var(--score)" : "var(--away)"
+      color: teamToW >= teamToL ? "var(--score)" : "var(--away)"
     }
-  }, totals.toW - totals.toL >= 0 ? "+" : "", totals.toW - totals.toL), /*#__PURE__*/React.createElement("div", {
+  }, teamToW - teamToL >= 0 ? "+" : "", teamToW - teamToL), /*#__PURE__*/React.createElement("div", {
     className: "kpi-s"
-  }, totals.toW, " won \xB7 ", totals.toL, " lost"))), /*#__PURE__*/React.createElement("div", {
+  }, teamToW, " won \xB7 ", teamToL, " lost"))), /*#__PURE__*/React.createElement("div", {
     className: "card"
   }, /*#__PURE__*/React.createElement("div", {
     className: "card-h"
   }, /*#__PURE__*/React.createElement("h3", null, "Player Season Aggregates"), /*#__PURE__*/React.createElement("span", {
     className: "sec-aux"
-  }, "All games combined")), /*#__PURE__*/React.createElement("div", {
+  }, matches, " game", matches !== 1 ? "s" : "", " \xB7 players with tracked events only")), /*#__PURE__*/React.createElement("div", {
     className: "card-b flush"
-  }, /*#__PURE__*/React.createElement("table", {
+  }, rows.length === 0 ? /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: 20,
+      textAlign: "center",
+      color: "var(--t3)",
+      fontSize: 12
+    }
+  }, "No individual player data found. Player tracking requires named players in the squad and live event logging.") : /*#__PURE__*/React.createElement("table", {
     className: "tbl"
   }, /*#__PURE__*/React.createElement("thead", null, /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("th", null, "Player"), /*#__PURE__*/React.createElement("th", {
     style: {
@@ -11780,17 +11842,17 @@ function SeasonStatsSection({
     style: {
       textAlign: "right"
     }
-  }, "xP +/-"), /*#__PURE__*/React.createElement("th", {
+  }, "xP +/\u2212"), /*#__PURE__*/React.createElement("th", {
     style: {
       textAlign: "right"
     }
-  }, "Total Pts"))), /*#__PURE__*/React.createElement("tbody", null, seasonStats.map(r => /*#__PURE__*/React.createElement("tr", {
-    key: r.p.id
+  }, "Total"))), /*#__PURE__*/React.createElement("tbody", null, rows.map(r => /*#__PURE__*/React.createElement("tr", {
+    key: r.name
   }, /*#__PURE__*/React.createElement("td", {
     className: "player"
   }, /*#__PURE__*/React.createElement("span", {
     className: "pn"
-  }, r.p.num), r.p.name), /*#__PURE__*/React.createElement("td", {
+  }, r.num), r.name), /*#__PURE__*/React.createElement("td", {
     className: "num"
   }, r.apps), /*#__PURE__*/React.createElement("td", {
     className: "num",
@@ -11800,11 +11862,11 @@ function SeasonStatsSection({
   }, r.goals || "–"), /*#__PURE__*/React.createElement("td", {
     className: "num",
     style: {
-      color: r.twoPts ? "var(--violet)" : "var(--t3)"
+      color: r.twos ? "var(--violet)" : "var(--t3)"
     }
-  }, r.twoPts || "–"), /*#__PURE__*/React.createElement("td", {
+  }, r.twos || "–"), /*#__PURE__*/React.createElement("td", {
     className: "num"
-  }, r.points || "–"), /*#__PURE__*/React.createElement("td", {
+  }, r.pts || "–"), /*#__PURE__*/React.createElement("td", {
     className: "num"
   }, r.shots || "–"), /*#__PURE__*/React.createElement("td", {
     className: "num"
@@ -11826,42 +11888,45 @@ function SeasonStatsSection({
   }, r.fouls || "–"), /*#__PURE__*/React.createElement("td", {
     className: "num",
     style: {
-      color: r.xPDelta >= 0 ? "var(--score)" : "var(--away)",
+      color: r.xpDiff > 0 ? "var(--score)" : r.xpDiff < 0 ? "var(--away)" : "var(--t2)",
       fontWeight: 700
     }
-  }, r.xPDelta >= 0 ? "+" : "", r.xPDelta.toFixed(1)), /*#__PURE__*/React.createElement("td", {
+  }, r.shots ? (r.xpDiff >= 0 ? "+" : "") + r.xpDiff : "–"), /*#__PURE__*/React.createElement("td", {
     className: "num",
     style: {
       color: r.totalPts ? "var(--gold)" : "var(--t3)",
       fontWeight: 700
     }
-  }, r.totalPts || "–"))), /*#__PURE__*/React.createElement("tr", {
+  }, r.totalPts || "–"))), rows.length > 0 && /*#__PURE__*/React.createElement("tr", {
     className: "tot"
   }, /*#__PURE__*/React.createElement("td", {
     className: "player"
-  }, "Panel total"), /*#__PURE__*/React.createElement("td", {
+  }, "Total"), /*#__PURE__*/React.createElement("td", {
     className: "num"
   }, "\u2014"), /*#__PURE__*/React.createElement("td", {
     className: "num"
-  }, totals.goals), /*#__PURE__*/React.createElement("td", {
+  }, totals.goals || "–"), /*#__PURE__*/React.createElement("td", {
     className: "num"
-  }, totals.twoPts), /*#__PURE__*/React.createElement("td", {
+  }, totals.twos || "–"), /*#__PURE__*/React.createElement("td", {
     className: "num"
-  }, totals.points), /*#__PURE__*/React.createElement("td", {
+  }, totals.pts || "–"), /*#__PURE__*/React.createElement("td", {
     className: "num"
-  }, totals.shots), /*#__PURE__*/React.createElement("td", {
+  }, totals.shots || "–"), /*#__PURE__*/React.createElement("td", {
     className: "num"
-  }, Math.round(totals.shots ? (totals.goals + totals.twoPts + totals.points) / totals.shots * 100 : 0), "%"), /*#__PURE__*/React.createElement("td", {
+  }, totals.shots ? Math.round((totals.goals + totals.twos + totals.pts) / totals.shots * 100) + "%" : "–"), /*#__PURE__*/React.createElement("td", {
     className: "num"
-  }, totals.toW), /*#__PURE__*/React.createElement("td", {
+  }, totals.toW || "–"), /*#__PURE__*/React.createElement("td", {
     className: "num"
-  }, totals.toL), /*#__PURE__*/React.createElement("td", {
+  }, totals.toL || "–"), /*#__PURE__*/React.createElement("td", {
     className: "num"
-  }, totals.fouls), /*#__PURE__*/React.createElement("td", {
+  }, totals.fouls || "–"), /*#__PURE__*/React.createElement("td", {
     className: "num"
   }, "\u2014"), /*#__PURE__*/React.createElement("td", {
-    className: "num"
-  }, totals.totalPts)))))), /*#__PURE__*/React.createElement(SeasonTrendsChart, {
+    className: "num",
+    style: {
+      fontWeight: 700
+    }
+  }, totals.totalPts || "–")))))), /*#__PURE__*/React.createElement(SeasonTrendsChart, {
     homeTeamName: homeTeam.name
   }));
 }
@@ -11877,8 +11942,8 @@ function SeasonTrendsChart({
   useEffect(() => {
     listMatches().then(all => {
       const hm = [...all].filter(m => {
-        var _m$homeTeam;
-        return (((_m$homeTeam = m.homeTeam) == null ? void 0 : _m$homeTeam.name) || "") === homeTeamName;
+        var _m$homeTeam3;
+        return (((_m$homeTeam3 = m.homeTeam) == null ? void 0 : _m$homeTeam3.name) || "") === homeTeamName;
       }).slice(0, 15).reverse().map(m => {
         try {
           var _m$awayTeam;
@@ -15782,10 +15847,10 @@ function SavedMatchesScreen({
     listMatches().then(setMatches);
   };
   const filtered = (matches || []).filter(m => {
-    var _m$homeTeam2, _m$awayTeam2;
+    var _m$homeTeam4, _m$awayTeam2;
     if (!search) return true;
     const s = search.toLowerCase();
-    return (((_m$homeTeam2 = m.homeTeam) == null ? void 0 : _m$homeTeam2.name) || "").toLowerCase().includes(s) || (((_m$awayTeam2 = m.awayTeam) == null ? void 0 : _m$awayTeam2.name) || "").toLowerCase().includes(s) || (m.venue || "").toLowerCase().includes(s);
+    return (((_m$homeTeam4 = m.homeTeam) == null ? void 0 : _m$homeTeam4.name) || "").toLowerCase().includes(s) || (((_m$awayTeam2 = m.awayTeam) == null ? void 0 : _m$awayTeam2.name) || "").toLowerCase().includes(s) || (m.venue || "").toLowerCase().includes(s);
   });
   return /*#__PURE__*/React.createElement("div", {
     style: {
@@ -15859,7 +15924,7 @@ function SavedMatchesScreen({
       textAlign: "right"
     }
   }, "Events"), /*#__PURE__*/React.createElement("th", null))), /*#__PURE__*/React.createElement("tbody", null, filtered.map(m => {
-    var _m$homeTeam3, _m$awayTeam3;
+    var _m$homeTeam5, _m$awayTeam3;
     const hS = scoreOf(m.events || [], "home");
     const aS = scoreOf(m.events || [], "away");
     return /*#__PURE__*/React.createElement("tr", {
@@ -15876,7 +15941,7 @@ function SavedMatchesScreen({
       style: {
         color: "var(--home)"
       }
-    }, ((_m$homeTeam3 = m.homeTeam) == null ? void 0 : _m$homeTeam3.name) || "Home"), /*#__PURE__*/React.createElement("span", {
+    }, ((_m$homeTeam5 = m.homeTeam) == null ? void 0 : _m$homeTeam5.name) || "Home"), /*#__PURE__*/React.createElement("span", {
       style: {
         color: "var(--t3)",
         margin: "0 6px"
@@ -16136,7 +16201,7 @@ function SeasonHeatmapScreen({
       fontSize: 12
     }
   }, "No saved matches yet."), (savedMatches || []).map(m => {
-    var _m$homeTeam4, _m$awayTeam4;
+    var _m$homeTeam6, _m$awayTeam4;
     const hS = scoreOf(m.events || [], "home");
     const aS = scoreOf(m.events || [], "away");
     return /*#__PURE__*/React.createElement("label", {
@@ -16171,7 +16236,7 @@ function SeasonHeatmapScreen({
       style: {
         color: "var(--home)"
       }
-    }, ((_m$homeTeam4 = m.homeTeam) == null ? void 0 : _m$homeTeam4.name) || "Home"), /*#__PURE__*/React.createElement("span", {
+    }, ((_m$homeTeam6 = m.homeTeam) == null ? void 0 : _m$homeTeam6.name) || "Home"), /*#__PURE__*/React.createElement("span", {
       style: {
         color: "var(--t3)",
         margin: "0 5px"
