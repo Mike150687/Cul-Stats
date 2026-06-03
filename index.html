@@ -928,7 +928,11 @@ async function listMatches() {
     const matches = await Promise.all(r.keys.map(async k => {
       try {
         const v = await storage.get(k);
-        return v ? JSON.parse(v.value) : null;
+        if (!v) return null;
+        const m = JSON.parse(v.value);
+        // Always ensure m.id matches the actual storage key so delete works
+        m.id = k;
+        return m;
       } catch {
         return null;
       }
@@ -1331,7 +1335,7 @@ const panelPlayers = team => (team.players || []).filter(p => p.pos || p.isSub);
 // BIP time = sum of (next_event_time - this_event_time) within the possession
 // origin: "kickout" | "turnover" | "score_against" | "start"
 function buildPossessions(events) {
-  const sorted = [...events].filter(e => !e.ignored && e.team && e.type !== "sub" && e.type !== "card").sort((a, b) => (a.half || 1) - (b.half || 1) || a.time - b.time);
+  const sorted = [...events].filter(e => !e.ignored && e.team && e.type !== "sub" && e.type !== "card" && e.type !== "_poss_close").sort((a, b) => (a.half || 1) - (b.half || 1) || a.time - b.time);
 
   // Pre-scan: mark fouls whose next meaningful event is a placed free.
   // Those are dead-ball fouls — the gap between whistle and free is excluded from BIP.
@@ -1365,12 +1369,13 @@ function buildPossessions(events) {
     poss.push(cur);
     cur = null;
   };
+  let pendingTurnoverFor = null; // team that should receive "turnover" origin on their next possession
   sorted.forEach(e => {
     if (e.type === "half") return;
 
     // ── Kickout ───────────────────────────────────────────────────────────
     if (e.type === "kickout") {
-      pendingResume = null;
+      pendingTurnoverFor = null; // kickout always overrides any pending turnover origin
       close(e.time);
       const winner = e.result === "won" ? e.team : e.team === "home" ? "away" : "home";
       cur = {
@@ -1386,23 +1391,17 @@ function buildPossessions(events) {
       return;
     }
 
-    // ── Foul ──────────────────────────────────────────────────────────────
+    // ── Foul handling ─────────────────────────────────────────────────────
     if (e.type === "foul") {
-      if (foulDeadBall.has(e.id)) {
-        // Save possession state so we can decide after the free.
-        pendingResume = cur ? {
-          team: cur.team,
-          startTime: cur.startTime,
-          half: cur.half || 1,
-          events: [...cur.events, e],
-          origin: cur.origin,
-          // BIP accumulated to this point (including any prior resumed BIP)
-          bipSoFar: Math.max(0, e.time - (cur._resumeTime ?? cur.startTime)) + (cur._preBIP || 0)
-        } : null;
-        if (cur) cur.events.push(e);
-        close(e.time); // close at the whistle; gap to free = excluded dead time
+      if (cur && cur.team === e.team) {
+        // Foul IN possession — the fouling team had the ball and gives it away
+        const other = e.team === "home" ? "away" : "home";
+        pendingTurnoverFor = other;
+        close(e.time);
+        // possession is now null; other team will start a T/O-origin possession on their next event
       }
-      // Live foul: skip — possession and BIP clock continue unchanged.
+      // Foul against a team already in possession, or with no current possession:
+      // don't change who has the ball
       return;
     }
 
@@ -1425,7 +1424,7 @@ function buildPossessions(events) {
           continued: true
         };
         pendingResume = null;
-        if (["goal", "point", "2point", "wideG", "wideP", "postG", "postP", "saved", "saved45", "blocked", "short", "45"].includes(e.outcome)) {
+        if (["goal", "point", "2point", "wideG", "wideP", "postG", "postP", "saved", "blocked", "short", "45"].includes(e.outcome)) {
           close(e.time);
         }
         return;
@@ -1438,10 +1437,17 @@ function buildPossessions(events) {
     }
 
     // ── Regular events ────────────────────────────────────────────────────
-    const newPoss = !cur || cur.team !== e.team;
+    // Fouls never start a possession for the fouling team:
+    //  • if there's already a different team's possession, a foul doesn't switch it
+    //  • if cur is null (e.g. H2 starts before a recorded kickout), a foul doesn't
+    //    hand possession to the fouling team either
+    // T/O won by the team already in possession resets to a fresh turnover possession.
+    const newPoss = cur === null ? e.type !== "foul" : cur.team !== e.team && (e.type === "_poss" || e.type !== "foul") || cur.team === e.team && e.type === "turnover" && e.result === "won";
     if (newPoss) {
       close(e.time);
-      const origin = e.type === "throwIn" ? "throwIn" : e.type === "turnover" && e.result === "won" ? "turnover" : "open";
+      let origin;
+      if (e.type === "throwIn") origin = "throwIn";else if (e.type === "_poss") origin = e._origin || "open";else if (pendingTurnoverFor === e.team) origin = "turnover";else if (e.type === "turnover" && e.result === "won") origin = "turnover";else origin = "open";
+      pendingTurnoverFor = null; // consumed — clear regardless
       cur = {
         team: e.team,
         startTime: e.time,
@@ -1453,11 +1459,13 @@ function buildPossessions(events) {
       };
     }
     cur.events.push(e);
-    if (e.type === "shot" && ["goal", "point", "2point", "wideG", "wideP", "postG", "postP", "saved", "saved45", "blocked", "short", "45"].includes(e.outcome)) {
+    if (e._synthetic) return; // _poss markers only start possessions, never close them
+    if (e.type === "shot" && ["goal", "point", "2point", "wideG", "wideP", "postG", "postP", "saved", "blocked", "short", "45"].includes(e.outcome)) {
       close(e.time);
     }
     if (e.type === "turnover" && e.result === "lost") {
       close(e.time);
+      pendingTurnoverFor = e.team === "home" ? "away" : "home"; // other team gains via T/O
     }
   });
   if (cur) close(cur.startTime + 8);
@@ -8273,6 +8281,7 @@ function LogTab({
       text: "Throw-In Won",
       sub: "Half start"
     };
+    if (e._synthetic) return null; // injected possession markers — hide from log
     return {
       text: e.type
     };
@@ -9661,6 +9670,7 @@ function SetupScreen({
   onStart,
   onViewSaved,
   onViewSeason,
+  onImportCSV,
   homeTeam,
   awayTeam,
   setHomeTeam,
@@ -9794,6 +9804,12 @@ function SetupScreen({
     name: "pin",
     size: 12
   }), " Season Heatmap"), /*#__PURE__*/React.createElement("button", {
+    className: "tbtn",
+    onClick: onImportCSV
+  }, /*#__PURE__*/React.createElement(Icon, {
+    name: "download",
+    size: 12
+  }), " Import Match"), /*#__PURE__*/React.createElement("button", {
     className: "tbtn primary",
     onClick: onStart,
     style: {
@@ -11851,58 +11867,74 @@ function SeasonStatsSection({
 }
 
 // ─── Season Trends Chart ─────────────────────────────────────────────
+
+// ─── Season Intelligence Dashboard ───────────────────────────────────────────
 function SeasonTrendsChart({
   homeTeamName
 }) {
-  const [trendData, setTrendData] = useState(null);
+  const [matches, setMatches] = useState(null);
+  const [view, setView] = useState("trends");
   useEffect(() => {
     listMatches().then(all => {
       const hm = [...all].filter(m => {
         var _m$homeTeam;
         return (((_m$homeTeam = m.homeTeam) == null ? void 0 : _m$homeTeam.name) || "") === homeTeamName;
-      }).slice(0, 12).reverse();
-      const pts = hm.map(m => {
+      }).slice(0, 15).reverse().map(m => {
         try {
           var _m$awayTeam;
           const evs = m.events || [];
-          const hAg = aggregateStats(evs, "home");
-          const hSc = scoreOf(evs, "home"),
-            aSc = scoreOf(evs, "away");
+          const h = aggregateStats(evs, "home");
+          const a = aggregateStats(evs, "away");
+          const hS = scoreOf(evs, "home"),
+            aS = scoreOf(evs, "away");
           return {
             date: m.savedAt ? new Date(m.savedAt).toLocaleDateString("en-IE", {
               month: "short",
               day: "numeric"
             }) : "?",
-            opp: ((_m$awayTeam = m.awayTeam) == null ? void 0 : _m$awayTeam.name) || "Away",
-            xpDelta: +hAg.xPDelta.toFixed(2),
-            sqi: +hAg.sqi,
-            toNet: hAg.toWon - hAg.toLost,
-            conv: hAg.conv,
-            won: hSc.total > aSc.total
+            opp: ((_m$awayTeam = m.awayTeam) == null ? void 0 : _m$awayTeam.name) || "Opp",
+            won: hS.total > aS.total,
+            hScore: `${hS.g}-${hS.p2 || 0}-${hS.p}`,
+            aScore: `${aS.g}-${aS.p2 || 0}-${aS.p}`,
+            diff: hS.total - aS.total,
+            conv: h.conv,
+            shots: h.shots,
+            xpDelta: +h.xPDelta.toFixed(2),
+            sqi: +(h.sqi || 0),
+            poss: h.possPct,
+            toNet: h.toWon - h.toLost,
+            koOwn: h.kosPct,
+            fouls: h.fouls,
+            fromPlay: evs.filter(e => !e.ignored && e.type === "shot" && e.team === "home" && ["play", "2play"].includes(e.source) && ["goal", "point", "2point"].includes(e.outcome)).reduce((s, e) => s + actualPts(e.outcome), 0),
+            fromFree: evs.filter(e => !e.ignored && e.type === "shot" && e.team === "home" && ["free", "2free", "mark", "45m"].includes(e.source) && ["goal", "point", "2point"].includes(e.outcome)).reduce((s, e) => s + actualPts(e.outcome), 0),
+            goalsConc: aS.g,
+            ptsConceded: aS.total,
+            shotRate: h.shotRate,
+            productivity: parseFloat(h.productivity) || 0
           };
         } catch {
           return null;
         }
       }).filter(Boolean);
-      setTrendData(pts);
+      setMatches(hm);
     });
   }, [homeTeamName]);
-  if (trendData === null) return /*#__PURE__*/React.createElement("div", {
+  if (matches === null) return /*#__PURE__*/React.createElement("div", {
     style: {
-      padding: "14px",
+      padding: 14,
       color: "var(--t3)",
       fontSize: 12,
       textAlign: "center"
     }
-  }, "Loading trends\u2026");
-  if (trendData.length < 2) return /*#__PURE__*/React.createElement("div", {
+  }, "Loading\u2026");
+  if (!matches.length) return /*#__PURE__*/React.createElement("div", {
     className: "card",
     style: {
       marginTop: 14
     }
   }, /*#__PURE__*/React.createElement("div", {
     className: "card-h"
-  }, /*#__PURE__*/React.createElement("h3", null, "Season Trends")), /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("h3", null, "Season Intelligence")), /*#__PURE__*/React.createElement("div", {
     className: "card-b",
     style: {
       color: "var(--t3)",
@@ -11910,7 +11942,106 @@ function SeasonTrendsChart({
       textAlign: "center",
       padding: "18px 0"
     }
-  }, "Save at least 2 matches to see trends."));
+  }, "Save at least 1 match to see season data."));
+  const avg = (arr, key) => arr.length ? +(arr.reduce((s, m) => s + (m[key] || 0), 0) / arr.length).toFixed(1) : 0;
+  const wins = matches.filter(m => m.won),
+    losses = matches.filter(m => !m.won);
+  const METRICS = [{
+    key: "conv",
+    label: "Shot Conv %",
+    unit: "%",
+    higher: true
+  }, {
+    key: "shots",
+    label: "Shots",
+    unit: "",
+    higher: true
+  }, {
+    key: "sqi",
+    label: "SQI",
+    unit: "",
+    higher: true
+  }, {
+    key: "xpDelta",
+    label: "xP Delta",
+    unit: "",
+    higher: true
+  }, {
+    key: "poss",
+    label: "Possession %",
+    unit: "%",
+    higher: true
+  }, {
+    key: "toNet",
+    label: "T/O Net",
+    unit: "",
+    higher: true
+  }, {
+    key: "koOwn",
+    label: "KO Retention %",
+    unit: "%",
+    higher: true
+  }, {
+    key: "fromPlay",
+    label: "Pts from Play",
+    unit: "",
+    higher: true
+  }, {
+    key: "fromFree",
+    label: "Pts from Free",
+    unit: "",
+    higher: true
+  }, {
+    key: "shotRate",
+    label: "Shot Rate %",
+    unit: "%",
+    higher: true
+  }, {
+    key: "productivity",
+    label: "Productivity",
+    unit: "",
+    higher: true
+  }, {
+    key: "fouls",
+    label: "Fouls",
+    unit: "",
+    higher: false
+  }, {
+    key: "goalsConc",
+    label: "Goals Conc",
+    unit: "",
+    higher: false
+  }, {
+    key: "ptsConceded",
+    label: "Score Conc",
+    unit: "",
+    higher: false
+  }];
+  const rollingAvg = n => {
+    const s = matches.slice(-n);
+    return METRICS.reduce((a, m) => ({
+      ...a,
+      [m.key]: avg(s, m.key)
+    }), {});
+  };
+  const avg3 = rollingAvg(3),
+    avg5 = rollingAvg(Math.min(5, matches.length)),
+    avgAll = rollingAvg(matches.length);
+  const winAvg = wins.length ? METRICS.reduce((a, m) => ({
+    ...a,
+    [m.key]: avg(wins, m.key)
+  }), {}) : null;
+  const lossAvg = losses.length ? METRICS.reduce((a, m) => ({
+    ...a,
+    [m.key]: avg(losses, m.key)
+  }), {}) : null;
+  const trend = (key, higher) => {
+    if (matches.length < 4) return "–";
+    const r = parseFloat(avg3[key]),
+      o = parseFloat(avgAll[key]);
+    if (higher) return r > o ? "▲" : r < o ? "▼" : "–";
+    return r < o ? "▲" : r > o ? "▼" : "–";
+  };
   const Spark = ({
     data,
     color,
@@ -11922,18 +12053,16 @@ function SeasonTrendsChart({
     const mn = Math.min(...vals),
       mx = Math.max(...vals),
       range = mx - mn || 1;
-    const W = 260,
+    const W = 300,
       H = 52,
       PAD = 5;
-    const polyPts = vals.map((v, i) => {
-      const x = PAD + i / (vals.length - 1 || 1) * (W - PAD * 2);
-      const y = H - PAD - (v - mn) / range * (H - PAD * 2);
-      return `${x.toFixed(1)},${y.toFixed(1)}`;
-    }).join(" ");
-    const zeroY = H - PAD - (0 - mn) / range * (H - PAD * 2);
+    const mkX = i => PAD + i / (vals.length - 1 || 1) * (W - PAD * 2);
+    const mkY = v => H - PAD - (v - mn) / range * (H - PAD * 2);
+    const poly = vals.map((v, i) => `${mkX(i).toFixed(1)},${mkY(v).toFixed(1)}`).join(" ");
+    const zY = mkY(0);
     return /*#__PURE__*/React.createElement("div", {
       style: {
-        marginBottom: 12
+        marginBottom: 14
       }
     }, /*#__PURE__*/React.createElement("div", {
       style: {
@@ -11953,7 +12082,7 @@ function SeasonTrendsChart({
       style: {
         fontFamily: "var(--fm)",
         fontSize: 10,
-        color: color,
+        color,
         fontWeight: 600
       }
     }, fmt(vals[vals.length - 1]))), /*#__PURE__*/React.createElement("svg", {
@@ -11965,31 +12094,27 @@ function SeasonTrendsChart({
       }
     }, zero && mn < 0 && mx > 0 && /*#__PURE__*/React.createElement("line", {
       x1: PAD,
-      y1: zeroY,
+      y1: zY,
       x2: W - PAD,
-      y2: zeroY,
+      y2: zY,
       stroke: "var(--wire2)",
       strokeWidth: "1",
       strokeDasharray: "3,3"
     }), /*#__PURE__*/React.createElement("polyline", {
-      points: polyPts,
+      points: poly,
       fill: "none",
       stroke: color,
       strokeWidth: "2",
       strokeLinejoin: "round"
-    }), vals.map((v, i) => {
-      const x = PAD + i / (vals.length - 1 || 1) * (W - PAD * 2);
-      const y = H - PAD - (v - mn) / range * (H - PAD * 2);
-      return /*#__PURE__*/React.createElement("circle", {
-        key: i,
-        cx: x,
-        cy: y,
-        r: "3.5",
-        fill: data[i].won ? "var(--score)" : "var(--away)",
-        stroke: color,
-        strokeWidth: "1.5"
-      });
-    })), /*#__PURE__*/React.createElement("div", {
+    }), vals.map((v, i) => /*#__PURE__*/React.createElement("circle", {
+      key: i,
+      cx: mkX(i),
+      cy: mkY(v),
+      r: "3.5",
+      fill: data[i].won ? "var(--score)" : "var(--away)",
+      stroke: color,
+      strokeWidth: "1.5"
+    }))), /*#__PURE__*/React.createElement("div", {
       style: {
         display: "flex",
         justifyContent: "space-between",
@@ -12007,7 +12132,7 @@ function SeasonTrendsChart({
         textOverflow: "ellipsis",
         whiteSpace: "nowrap"
       }
-    }, d.date))));
+    }, d.opp))));
   };
   return /*#__PURE__*/React.createElement("div", {
     className: "card",
@@ -12016,36 +12141,63 @@ function SeasonTrendsChart({
     }
   }, /*#__PURE__*/React.createElement("div", {
     className: "card-h"
-  }, /*#__PURE__*/React.createElement("h3", null, "Season Trends"), /*#__PURE__*/React.createElement("span", {
+  }, /*#__PURE__*/React.createElement("h3", null, "Season Intelligence"), /*#__PURE__*/React.createElement("span", {
     className: "sec-aux"
-  }, "Last ", trendData.length, " matches \xB7 \u25CF W  \u25CF L")), /*#__PURE__*/React.createElement("div", {
+  }, matches.length, " matches \xB7 ", wins.length, "W ", losses.length, "L")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 0,
+      paddingLeft: 14,
+      borderBottom: "1px solid var(--line-soft)"
+    }
+  }, [["trends", "Trends"], ["winformula", "Win Formula"], ["averages", "Season Avgs"]].map(([id, lab]) => /*#__PURE__*/React.createElement("button", {
+    key: id,
+    onClick: () => setView(id),
+    style: {
+      padding: "8px 14px",
+      fontFamily: "var(--fd)",
+      fontSize: 11,
+      fontWeight: 600,
+      color: view === id ? "var(--home)" : "var(--t3)",
+      background: "none",
+      borderBottom: view === id ? "2px solid var(--home)" : "2px solid transparent",
+      marginBottom: -1
+    }
+  }, lab))), /*#__PURE__*/React.createElement("div", {
     className: "card-b"
-  }, /*#__PURE__*/React.createElement(Spark, {
-    data: trendData.map(m => ({
+  }, view === "trends" && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontFamily: "var(--fm)",
+      fontSize: 10,
+      color: "var(--t3)",
+      marginBottom: 10
+    }
+  }, "\u25CF Win \xA0 \u25CF Loss \xA0\xB7 last ", matches.length, " matches"), /*#__PURE__*/React.createElement(Spark, {
+    data: matches.map(m => ({
       ...m,
       v: m.xpDelta
     })),
     color: "var(--home)",
-    label: "xP Delta (actual \u2212 expected)",
+    label: "xP Delta",
     fmt: v => (v >= 0 ? "+" : "") + v.toFixed(2)
   }), /*#__PURE__*/React.createElement(Spark, {
-    data: trendData.map(m => ({
+    data: matches.map(m => ({
       ...m,
-      v: parseFloat(m.sqi || 0)
+      v: m.sqi
     })),
     color: "var(--gold)",
-    label: "Shot Quality Index (SQI)",
+    label: "Shot Quality (SQI)",
     fmt: v => v.toFixed(3),
     zero: false
   }), /*#__PURE__*/React.createElement(Spark, {
-    data: trendData.map(m => ({
+    data: matches.map(m => ({
       ...m,
       v: m.toNet
     })),
     color: "var(--score)",
-    label: "Turnover Net (Won \u2212 Lost)"
+    label: "T/O Net"
   }), /*#__PURE__*/React.createElement(Spark, {
-    data: trendData.map(m => ({
+    data: matches.map(m => ({
       ...m,
       v: m.conv
     })),
@@ -12053,7 +12205,1266 @@ function SeasonTrendsChart({
     label: "Shot Conversion %",
     fmt: v => v + "%",
     zero: false
-  })));
+  }), /*#__PURE__*/React.createElement(Spark, {
+    data: matches.map(m => ({
+      ...m,
+      v: m.poss
+    })),
+    color: "var(--gold)",
+    label: "Possession %",
+    fmt: v => v + "%",
+    zero: false
+  }), /*#__PURE__*/React.createElement(Spark, {
+    data: matches.map(m => ({
+      ...m,
+      v: m.koOwn
+    })),
+    color: "oklch(0.65 0.12 200)",
+    label: "KO Retention %",
+    fmt: v => v + "%",
+    zero: false
+  })), view === "winformula" && (wins.length === 0 || losses.length === 0 ? /*#__PURE__*/React.createElement("div", {
+    style: {
+      color: "var(--t3)",
+      fontSize: 12,
+      textAlign: "center",
+      padding: "18px 0"
+    }
+  }, "Need both wins and losses to build the win formula.") : /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontFamily: "var(--fm)",
+      fontSize: 11,
+      color: "var(--t3)",
+      marginBottom: 10
+    }
+  }, "What your numbers look like in wins vs losses \u2014 use as pre-game targets."), /*#__PURE__*/React.createElement("div", {
+    style: {
+      overflowX: "auto"
+    }
+  }, /*#__PURE__*/React.createElement("table", {
+    style: {
+      width: "100%",
+      borderCollapse: "collapse",
+      fontSize: 11
+    }
+  }, /*#__PURE__*/React.createElement("thead", null, /*#__PURE__*/React.createElement("tr", {
+    style: {
+      borderBottom: "1.5px solid var(--line-soft)"
+    }
+  }, /*#__PURE__*/React.createElement("th", {
+    style: {
+      textAlign: "left",
+      padding: "5px 8px",
+      fontFamily: "var(--fCond)",
+      fontSize: 9,
+      color: "var(--t3)",
+      letterSpacing: "0.08em",
+      textTransform: "uppercase"
+    }
+  }, "Metric"), /*#__PURE__*/React.createElement("th", {
+    style: {
+      textAlign: "center",
+      padding: "5px 8px",
+      fontFamily: "var(--fCond)",
+      fontSize: 9,
+      color: "var(--score)",
+      letterSpacing: "0.08em",
+      textTransform: "uppercase"
+    }
+  }, "Wins (", wins.length, ")"), /*#__PURE__*/React.createElement("th", {
+    style: {
+      textAlign: "center",
+      padding: "5px 8px",
+      fontFamily: "var(--fCond)",
+      fontSize: 9,
+      color: "var(--away)",
+      letterSpacing: "0.08em",
+      textTransform: "uppercase"
+    }
+  }, "Losses (", losses.length, ")"), /*#__PURE__*/React.createElement("th", {
+    style: {
+      textAlign: "center",
+      padding: "5px 8px",
+      fontFamily: "var(--fCond)",
+      fontSize: 9,
+      color: "var(--t3)",
+      letterSpacing: "0.08em",
+      textTransform: "uppercase"
+    }
+  }, "Gap"))), /*#__PURE__*/React.createElement("tbody", null, METRICS.map((m, i) => {
+    const w = parseFloat(winAvg[m.key]),
+      l = parseFloat(lossAvg[m.key]);
+    const gap = +(w - l).toFixed(1);
+    const beneficial = m.higher ? gap > 0 : gap < 0;
+    return /*#__PURE__*/React.createElement("tr", {
+      key: m.key,
+      style: {
+        background: i % 2 === 0 ? "var(--bg-2)" : "transparent",
+        borderBottom: "1px solid var(--bg-3)"
+      }
+    }, /*#__PURE__*/React.createElement("td", {
+      style: {
+        padding: "5px 8px",
+        fontFamily: "var(--fm)",
+        color: "var(--t2)"
+      }
+    }, m.label), /*#__PURE__*/React.createElement("td", {
+      style: {
+        padding: "5px 8px",
+        textAlign: "center",
+        fontFamily: "var(--fd)",
+        fontWeight: 700,
+        color: "var(--score)"
+      }
+    }, w, m.unit), /*#__PURE__*/React.createElement("td", {
+      style: {
+        padding: "5px 8px",
+        textAlign: "center",
+        fontFamily: "var(--fd)",
+        color: "var(--away)"
+      }
+    }, l, m.unit), /*#__PURE__*/React.createElement("td", {
+      style: {
+        padding: "5px 8px",
+        textAlign: "center",
+        fontFamily: "var(--fd)",
+        fontWeight: 600,
+        color: beneficial ? "var(--score)" : Math.abs(gap) < 1 ? "var(--t3)" : "var(--away)"
+      }
+    }, gap > 0 ? "+" : "", gap, m.unit));
+  })))))), view === "averages" && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontFamily: "var(--fm)",
+      fontSize: 10,
+      color: "var(--t3)",
+      marginBottom: 10
+    }
+  }, "Running averages \xB7 \u25B2 improving vs season avg \xB7 \u25BC declining"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      overflowX: "auto"
+    }
+  }, /*#__PURE__*/React.createElement("table", {
+    style: {
+      width: "100%",
+      borderCollapse: "collapse",
+      fontSize: 11,
+      minWidth: 300
+    }
+  }, /*#__PURE__*/React.createElement("thead", null, /*#__PURE__*/React.createElement("tr", {
+    style: {
+      borderBottom: "1.5px solid var(--line-soft)"
+    }
+  }, /*#__PURE__*/React.createElement("th", {
+    style: {
+      textAlign: "left",
+      padding: "5px 8px",
+      fontFamily: "var(--fCond)",
+      fontSize: 9,
+      color: "var(--t3)",
+      letterSpacing: "0.08em",
+      textTransform: "uppercase"
+    }
+  }, "Metric"), /*#__PURE__*/React.createElement("th", {
+    style: {
+      textAlign: "center",
+      padding: "5px 6px",
+      fontFamily: "var(--fCond)",
+      fontSize: 9,
+      color: "var(--t1)",
+      letterSpacing: "0.08em",
+      textTransform: "uppercase"
+    }
+  }, "L3"), /*#__PURE__*/React.createElement("th", {
+    style: {
+      textAlign: "center",
+      padding: "5px 6px",
+      fontFamily: "var(--fCond)",
+      fontSize: 9,
+      color: "var(--t2)",
+      letterSpacing: "0.08em",
+      textTransform: "uppercase"
+    }
+  }, "L5"), /*#__PURE__*/React.createElement("th", {
+    style: {
+      textAlign: "center",
+      padding: "5px 6px",
+      fontFamily: "var(--fCond)",
+      fontSize: 9,
+      color: "var(--t3)",
+      letterSpacing: "0.08em",
+      textTransform: "uppercase"
+    }
+  }, "Season"), winAvg && /*#__PURE__*/React.createElement("th", {
+    style: {
+      textAlign: "center",
+      padding: "5px 6px",
+      fontFamily: "var(--fCond)",
+      fontSize: 9,
+      color: "var(--score)",
+      letterSpacing: "0.08em",
+      textTransform: "uppercase"
+    }
+  }, "Win avg"), /*#__PURE__*/React.createElement("th", {
+    style: {
+      textAlign: "center",
+      padding: "5px 6px",
+      fontFamily: "var(--fCond)",
+      fontSize: 9,
+      color: "var(--t3)",
+      letterSpacing: "0.08em",
+      textTransform: "uppercase"
+    }
+  }, "Trend"))), /*#__PURE__*/React.createElement("tbody", null, METRICS.map((m, i) => {
+    const tr = trend(m.key, m.higher);
+    const trCol = tr === "▲" ? "var(--score)" : tr === "▼" ? "var(--away)" : "var(--t3)";
+    return /*#__PURE__*/React.createElement("tr", {
+      key: m.key,
+      style: {
+        background: i % 2 === 0 ? "var(--bg-2)" : "transparent",
+        borderBottom: "1px solid var(--bg-3)"
+      }
+    }, /*#__PURE__*/React.createElement("td", {
+      style: {
+        padding: "5px 8px",
+        fontFamily: "var(--fm)",
+        color: "var(--t2)",
+        whiteSpace: "nowrap"
+      }
+    }, m.label), /*#__PURE__*/React.createElement("td", {
+      style: {
+        padding: "5px 6px",
+        textAlign: "center",
+        fontFamily: "var(--fd)",
+        fontWeight: 700,
+        color: "var(--t1)"
+      }
+    }, avg3[m.key], m.unit), /*#__PURE__*/React.createElement("td", {
+      style: {
+        padding: "5px 6px",
+        textAlign: "center",
+        fontFamily: "var(--fm)",
+        color: "var(--t2)"
+      }
+    }, matches.length >= 5 ? avg5[m.key] + m.unit : "–"), /*#__PURE__*/React.createElement("td", {
+      style: {
+        padding: "5px 6px",
+        textAlign: "center",
+        fontFamily: "var(--fm)",
+        color: "var(--t3)"
+      }
+    }, avgAll[m.key], m.unit), winAvg && /*#__PURE__*/React.createElement("td", {
+      style: {
+        padding: "5px 6px",
+        textAlign: "center",
+        fontFamily: "var(--fm)",
+        color: "var(--score)"
+      }
+    }, winAvg[m.key], m.unit), /*#__PURE__*/React.createElement("td", {
+      style: {
+        padding: "5px 6px",
+        textAlign: "center",
+        fontFamily: "var(--fd)",
+        fontWeight: 700,
+        fontSize: 13,
+        color: trCol
+      }
+    }, tr));
+  })))))));
+}
+
+// ─── GAAScores CSV parser ─────────────────────────────────────────────────────
+// Parses the format exported by GAAScores app.
+// Columns: summary, time, period, team, player, sort, stat_1, stat_2,
+//          x_posn_%, y_posn_%, Car Pos., Ball Pos., Car Shot, Ball Shot,
+//          Car Zone, Car xP, Ball Zone, Ball xP, Car KO, Ball KO, T/O
+function isGAAScoresFormat(headers) {
+  // Works for all export versions:
+  //   with zones:    "Car Zone" / "Ball Zone" / "Carr Zone" / "Doh Zone"
+  //   without zones: only x_posn_% / y_posn_% (newer exports)
+  // stat_1 is the reliable fingerprint; zone OR position coords confirm it.
+  return headers.includes("stat_1") && (headers.some(h => /zone/i.test(h)) || headers.some(h => h.includes("x_posn") || h.includes("y_posn")));
+}
+
+// Synthesise a loc {x,y} that maps back to the given sector in shotSector().
+function sectorToLoc(sector, team, halDir, is2pt = false) {
+  if (sector < 1 || sector > 12) return {
+    x: 50,
+    y: 50
+  };
+  const attacksLeft = team === "home" ? halDir : !halDir;
+  // normalX midpoints — sectors 4-6 (2pt) need a slightly higher nx than 7-9 (1pt)
+  // so re-processing through shotSector still lands in the right band
+  const nx = sector <= 3 ? 40 : sector <= 6 ? is2pt ? 22 : 22 : sector <= 9 ? 22 : 7;
+  const x = attacksLeft ? nx : 100 - nx;
+  const lat = (sector - 1) % 3; // 0=R, 1=M, 2=L
+  let y;
+  if (attacksLeft) {
+    y = lat === 0 ? 20 : lat === 1 ? 50 : 80;
+  } else {
+    y = lat === 0 ? 80 : lat === 1 ? 50 : 20;
+  }
+  return {
+    x,
+    y
+  };
+}
+function parseGAAScoresCSV(text, homeAttacksLeft = true) {
+  const lines = text.trim().split(/\r?\n/);
+  const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
+  const raw = lines.slice(1).map(l => {
+    // Basic CSV parse – handle the occasional MM:SS:00 time value
+    const vals = [];
+    let cur = '',
+      inQ = false;
+    for (const ch of l) {
+      if (ch === '"') {
+        inQ = !inQ;
+      } else if (ch === ',' && !inQ) {
+        vals.push(cur.trim());
+        cur = '';
+      } else cur += ch;
+    }
+    vals.push(cur.trim());
+    return headers.reduce((o, h, i) => ({
+      ...o,
+      [h]: (vals[i] || "").replace(/^"|"$/g, '')
+    }), {});
+  });
+
+  // Extract team names from the first non-empty summary row.
+  // Summary format: "1st half start: HH:MM   DD-MM-YY HomeTeam v. AwayTeam"
+  // We split on " v. " and take the last space-delimited word before it.
+  let homeTeam = "Home",
+    awayTeam = "Away";
+  for (const row of raw) {
+    const summary = row.summary || "";
+    const vIdx = summary.indexOf(" v. ");
+    if (vIdx > -1) {
+      homeTeam = summary.slice(0, vIdx).trim().split(/\s+/).pop() || "Home";
+      awayTeam = summary.slice(vIdx + 4).trim().replace(/,.*$/, "").trim() || "Away";
+      break;
+    }
+  }
+  const events = [];
+  raw.forEach((row, ri) => {
+    const team_raw = row.team || "";
+    if (!team_raw || team_raw === "null") return;
+    const stat1 = (row.stat_1 || "").trim().toLowerCase();
+    if (!stat1 || stat1 === "null") return;
+    const team = team_raw === homeTeam ? "home" : "away";
+    const player = row.player && row.player !== "null" && !/^\d+$/.test(row.player) ? row.player : undefined;
+
+    // Parse time: supports "MM:SS" and "MM:SS:00"
+    const tp = (row.time || "0:00").split(":");
+    const timeSec = Math.min((parseInt(tp[0]) || 0) * 60 + (parseInt(tp[1]) || 0), 1799);
+    const half = (row.period || "").includes("2") ? 2 : 1;
+    // GAAScores exports use absolute pitch coordinates — the pitch orientation does NOT
+    // flip at half-time in the data.  Using half===2 ? !homeAttacksLeft : homeAttacksLeft
+    // would mirror every H2 shot/turnover/foul to the wrong end of the pitch.
+    const halDir = homeAttacksLeft;
+    const stat2 = (row.stat_2 || "").trim().toLowerCase();
+
+    // Zone columns differ by export version ("Car Zone"/"Ball Zone" vs "Carr Zone"/"Doh Zone").
+    // Find the non-zero zone value for this row — exactly one zone col has a value per shot row.
+    const zoneCols = headers.filter(h => /zone/i.test(h));
+    const sector = zoneCols.reduce((found, col) => found || parseInt(row[col]) || 0, 0);
+    const id = `csv-${Date.now()}-${ri}-${Math.random().toString(36).slice(2, 6)}`;
+    const base = {
+      id,
+      team,
+      time: timeSec,
+      half,
+      halDir
+    };
+    if (player) base.player = player;
+
+    // ── SUBSTITUTION ──
+    const sumLow = (row.summary || "").toLowerCase();
+    const hasSub = sumLow.includes("substitution") || (row.event_type || "").toLowerCase() === "sub" || row.sub_on && row.sub_on !== "null" || row.sub_off && row.sub_off !== "null";
+    if (hasSub) {
+      var _match, _match2;
+      const off = (row.sub_off && row.sub_off !== "null" ? row.sub_off : (_match = (row.summary || "").match(/off:\s*([^,]+?)\s+on:/i)) == null ? void 0 : _match[1]) || "?";
+      const on = (row.sub_on && row.sub_on !== "null" ? row.sub_on : (_match2 = (row.summary || "").match(/on:\s*(.+?)(?:\s*,|$)/i)) == null ? void 0 : _match2[1]) || "?";
+      events.push({
+        ...base,
+        type: "sub",
+        off: off.trim(),
+        on: on.trim()
+      });
+      return;
+    }
+
+    // ── FOUL ──
+    if (stat1 === "free/pen conceded") {
+      events.push({
+        ...base,
+        type: "foul",
+        loc: {
+          x: parseFloat(row["y_posn_%"]) || 50,
+          y: parseFloat(row["x_posn_%"]) || 50
+        }
+      });
+      return;
+    }
+
+    // ── KICKOUT ──
+    if (stat1.includes("puck/kick out")) {
+      const result = stat1.includes("won") ? "won" : "lost";
+      // GAAScores coordinates are absolute (not flipped per half), so:
+      //  loc.x = csv y_posn (depth axis), loc.y = csv x_posn (lateral axis)
+      // halDir must be homeAttacksLeft (constant both halves) so kickoutLength
+      // correctly identifies which end the kicker's goal is on.
+      const koLoc = {
+        x: parseFloat(row["y_posn_%"]) || 50,
+        y: parseFloat(row["x_posn_%"]) || 50
+      };
+      events.push({
+        ...base,
+        halDir: homeAttacksLeft,
+        type: "kickout",
+        result,
+        loc: koLoc
+      });
+      return;
+    }
+
+    // ── TURNOVER ──
+    if (stat1.startsWith("turnover")) {
+      const result = stat1.includes("won") ? "won" : "lost";
+      events.push({
+        ...base,
+        type: "turnover",
+        result,
+        method: "mistake",
+        loc: {
+          x: parseFloat(row["y_posn_%"]) || 50,
+          y: parseFloat(row["x_posn_%"]) || 50
+        }
+      });
+      return;
+    }
+
+    // ── SHOT ──
+    const SHOT_STATS = ["goal", "point", "wide", "short", "2 pointer", "saved", "blocked", "45", "off post", "out for 45"];
+    if (SHOT_STATS.some(k => stat1.includes(k))) {
+      // Outcome
+      let outcome = "point";
+      if (stat1 === "goal") outcome = "goal";else if (stat1 === "point") outcome = "point";else if (stat1 === "2 pointer") outcome = "2point";else if (stat1 === "wide") outcome = "wideP"; // old app doesn't split wideG
+      else if (stat1 === "short") outcome = "short"; // fell short of the posts
+      else if (stat1.includes("off post") || stat1.includes("off the post")) outcome = "postP"; // off posts
+      else if (stat1.includes("saved out for 45") || stat1.includes("out for 45")) outcome = "saved45";else if (stat1.includes("saved")) outcome = "saved";else if (stat1.includes("blocked")) outcome = "blocked";else if (stat1.includes("45")) outcome = "wideP"; // 45 outcome = shot went over end line
+
+      // Source
+      let source = "play";
+      if (stat2 === "from play" && stat1 === "2 pointer") source = "2play";else if (stat2 === "from free" && stat1 === "2 pointer") source = "2free";else if (stat2 === "from play") source = "play";else if (stat2 === "from free") source = "free";else if (stat2 === "from mark") source = "mark";else if (stat2.includes("45")) source = "45m";else if (stat2.includes("pen")) source = "penalty";
+      const is2pt = ["2play", "2free"].includes(source) || outcome === "2point";
+
+      // Synthesise loc from sector when zone data is present; otherwise use raw
+      // x/y coords with the axis swap that GAAScores requires (depth = y_posn, lateral = x_posn).
+      const rawLoc = {
+        x: parseFloat(row["y_posn_%"]) || 50,
+        y: parseFloat(row["x_posn_%"]) || 50
+      };
+      const loc = sector >= 1 && sector <= 12 ? sectorToLoc(sector, team, halDir, is2pt) : rawLoc;
+      const pressure = false; // old app doesn't track pressure
+      events.push({
+        ...base,
+        type: "shot",
+        outcome,
+        source,
+        loc,
+        pressure
+      });
+      return;
+    }
+  });
+
+  // ── Inject synthetic possession-start events ─────────────────────────────
+  // The GAAScores CSV only records significant events. When a team loses a
+  // turnover or shoots (short/wide/goal) and the NEXT event in the CSV is also
+  // the same team, the receiving team had a possession with no recorded start.
+  // We inject a lightweight "_poss" marker so buildPossessions creates the
+  // correct possession for them. "_poss" events are invisible to all stat
+  // functions (they filter by specific types) but DO trigger team switches.
+  const CLOSING_O = new Set(["goal", "point", "2point", "wideG", "wideP", "postG", "postP", "saved", "blocked", "short", "45"]);
+  const chronoEvs = [...events].sort((a, b) => (a.half || 1) - (b.half || 1) || a.time - b.time);
+  const injected = [];
+  for (let i = 0; i < chronoEvs.length - 1; i++) {
+    const e = chronoEvs[i];
+    const nxt = chronoEvs[i + 1];
+    if ((e.half || 1) !== (nxt.half || 1)) continue; // half boundary — skip
+    const isTOLost = e.type === "turnover" && e.result === "lost";
+    const isKOLost = e.type === "kickout" && e.result === "lost";
+    const isShotLost = e.type === "shot" && CLOSING_O.has(e.outcome);
+    const releasedBall = isTOLost || isKOLost || isShotLost;
+    if (!releasedBall) continue;
+    if (nxt.team !== e.team) continue; // other team already has next event ✓
+    const other = e.team === "home" ? "away" : "home";
+    injected.push({
+      id: `_poss-${e.id}`,
+      type: "_poss",
+      team: other,
+      half: e.half || 1,
+      time: e.time + 0.5,
+      halDir: e.halDir,
+      _origin: isTOLost ? "turnover" : "open",
+      // T/O lost → other team wins via T/O
+      _synthetic: true
+    });
+  }
+  events.push(...injected);
+  return {
+    events,
+    homeTeam,
+    awayTeam
+  };
+}
+
+// ─── CSV Import Tool ──────────────────────────────────────────────────────────
+function CSVImportModal({
+  onClose,
+  onImport
+}) {
+  const [step, setStep] = useState("upload");
+  const [headers, setHeaders] = useState([]);
+  const [rows, setRows] = useState([]);
+  const [mapping, setMapping] = useState({});
+  const [homeName, setHomeName] = useState("");
+  const [awayName, setAwayName] = useState("");
+  const [preview, setPreview] = useState([]);
+  const [error, setError] = useState("");
+
+  // Parse CSV text
+  const parseCSV = text => {
+    const lines = text.trim().split(/\r?\n/);
+    if (lines.length < 2) return {
+      headers: [],
+      rows: []
+    };
+    const hdrs = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
+    const rws = lines.slice(1).map(l => {
+      // Handle quoted commas
+      const vals = [];
+      let cur = '',
+        inQ = false;
+      for (const ch of l) {
+        if (ch === '"') {
+          inQ = !inQ;
+        } else if (ch === ',' && !inQ) {
+          vals.push(cur.trim());
+          cur = '';
+        } else cur += ch;
+      }
+      vals.push(cur.trim());
+      return hdrs.reduce((o, h, i) => ({
+        ...o,
+        [h]: (vals[i] || "").replace(/^"|"$/g, '')
+      }), {});
+    }).filter(r => Object.values(r).some(v => v));
+    return {
+      headers: hdrs,
+      rows: rws
+    };
+  };
+
+  // Auto-detect column mappings
+  const autoDetect = hdrs => {
+    const checks = {
+      time: /^(time|clock|minute|min|seconds?|sec|t)$/i,
+      half: /^(half|period|h|halfno|half_no|p)$/i,
+      type: /^(type|event|action|eventtype|event_type)$/i,
+      team: /^(team|side|club|teamname|team_name)$/i,
+      player: /^(player|name|athlete|playername|player_name)$/i,
+      outcome: /^(outcome|result|scored?|shot_outcome|shotoutcome)$/i,
+      source: /^(source|from|shottype|shot_type|method|kind)$/i,
+      x: /^(x|xpos|x_pos|xcoord|xloc|locx|loc_x)$/i,
+      y: /^(y|ypos|y_pos|ycoord|yloc|locy|loc_y)$/i
+    };
+    const m = {};
+    hdrs.forEach(h => {
+      Object.entries(checks).forEach(([f, pat]) => {
+        if (pat.test(h.trim()) && !m[f]) m[f] = h;
+      });
+    });
+    return m;
+  };
+  const [gaascores, setGaascores] = useState(null); // pre-parsed GAAScores result
+  const [gaaHAL, setGaaHAL] = useState(false); // homeAttacksLeft setting for GAAScores
+
+  const handleFile = e => {
+    var _e$target$files2;
+    const f = (_e$target$files2 = e.target.files) == null ? void 0 : _e$target$files2[0];
+    if (!f) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+      try {
+        const text = ev.target.result;
+        const {
+          headers: hdrs,
+          rows: rws
+        } = parseCSV(text);
+        if (!hdrs.length) {
+          setError("Could not parse CSV — check file format.");
+          return;
+        }
+        if (isGAAScoresFormat(hdrs)) {
+          const result = parseGAAScoresCSV(text, false); // default: home attacks right in H1
+          setGaascores({
+            text,
+            ...result
+          });
+          setHomeName(result.homeTeam);
+          setAwayName(result.awayTeam);
+          setGaaHAL(false);
+          setError("");
+          setStep("preview_gaascores");
+        } else {
+          setHeaders(hdrs);
+          setRows(rws);
+          setMapping(autoDetect(hdrs));
+          setGaascores(null);
+          setError("");
+          setStep("map");
+        }
+      } catch (err) {
+        setError("Parse error: " + err.message);
+      }
+    };
+    reader.readAsText(f);
+  };
+
+  // Convert rows to events
+  const buildEvents = () => {
+    const m = mapping;
+    return rows.map((row, i) => {
+      const type_raw = m.type ? (row[m.type] || "").toLowerCase() : "shot";
+      let type = "shot";
+      if (/turn|intercept|tackle|mistake/.test(type_raw)) type = "turnover";else if (/kick.?out|ko\b|restart/.test(type_raw)) type = "kickout";else if (/foul|yellow|red|black|card/.test(type_raw)) type = "foul";
+      const team_raw = m.team ? (row[m.team] || "").toLowerCase() : "";
+      const team = homeName && (team_raw.includes(homeName.toLowerCase()) || team_raw === "home") ? "home" : "away";
+      const rawTime = m.time ? row[m.time] : "0";
+      const timeParts = String(rawTime).split(':');
+      const timeSec = timeParts.length > 1 ? parseInt(timeParts[0] || 0) * 60 + parseInt(timeParts[1] || 0) : (parseFloat(rawTime) || 0) * 60;
+      const half = m.half ? Math.max(1, parseInt(row[m.half] || 1) || 1) : 1;
+      const px = m.x ? parseFloat(row[m.x]) : undefined;
+      const py = m.y ? parseFloat(row[m.y]) : undefined;
+      const ev = {
+        id: `csv-${Date.now()}-${i}`,
+        type,
+        team,
+        time: timeSec % 1800,
+        half,
+        halDir: false
+      };
+      if (px !== undefined && py !== undefined && !isNaN(px) && !isNaN(py)) ev.loc = {
+        x: Math.min(100, Math.max(0, px)),
+        y: Math.min(100, Math.max(0, py))
+      };
+      if (m.player && row[m.player]) ev.player = row[m.player];
+      if (type === "shot") {
+        const or = m.outcome ? (row[m.outcome] || "").toLowerCase() : "";
+        const sr = m.source ? (row[m.source] || "").toLowerCase() : "play";
+        let outcome = "point";
+        if (/\bgoal\b/.test(or) && !/wide|miss|block|saved/.test(or)) outcome = "goal";else if (/2.?point|two.?point|2pt/.test(or)) outcome = "2point";else if (/wide.*g|wg\b|goal.*wide/.test(or)) outcome = "wideG";else if (/wide/.test(or)) outcome = "wideP";else if (/block/.test(or)) outcome = "blocked";else if (/saved.*45|45.*saved/.test(or)) outcome = "saved45";else if (/saved|keeper|save/.test(or)) outcome = "saved";else if (/post.*g|pg\b/.test(or)) outcome = "postG";else if (/post/.test(or)) outcome = "postP";
+        let source = "play";
+        if (/45m?|forty.?five/.test(sr)) source = "45m";else if (/2.?free|two.?free/.test(sr)) source = "2free";else if (/2.?play|two.?play/.test(sr)) source = "2play";else if (/free\b/.test(sr)) source = "free";else if (/pen/.test(sr)) source = "penalty";else if (/mark/.test(sr)) source = "mark";else if (/side/.test(sr)) source = "side";
+        ev.outcome = outcome;
+        ev.source = source;
+      } else if (type === "turnover") {
+        const rr = m.outcome ? (row[m.outcome] || "").toLowerCase() : "won";
+        ev.result = /lost|give|lose/.test(rr) ? "lost" : "won";
+        ev.method = "mistake";
+      } else if (type === "kickout") {
+        const rr = m.outcome ? (row[m.outcome] || "").toLowerCase() : "won";
+        ev.result = /lost/.test(rr) ? "lost" : "won";
+      }
+      return ev;
+    });
+  };
+  const handleMap = () => {
+    const evs = buildEvents();
+    setPreview(evs.slice(0, 6));
+    setStep("preview");
+  };
+  const handleImport = async () => {
+    const evs = buildEvents();
+    const id = `gaa:match:${Date.now()}`;
+    const match = {
+      id,
+      homeTeam: {
+        name: homeName || "Home",
+        players: [],
+        accent: "#3b82f6"
+      },
+      awayTeam: {
+        name: awayName || "Away",
+        players: [],
+        accent: "#ef4444"
+      },
+      events: evs,
+      savedAt: Date.now(),
+      halfLength: 30,
+      phase: "ft",
+      half: 2,
+      seconds: 0
+    };
+    await storage.set(id, JSON.stringify(match));
+    setStep("done");
+    if (onImport) onImport(match);
+  };
+  const FIELD_LABELS = {
+    time: "Time/Clock",
+    half: "Half/Period",
+    type: "Event Type",
+    team: "Team",
+    player: "Player",
+    outcome: "Outcome/Result",
+    source: "Shot Source",
+    x: "Pitch X (0–100)",
+    y: "Pitch Y (0–100)"
+  };
+  const OPTIONAL_FIELDS = new Set(["player", "source", "x", "y"]);
+  return /*#__PURE__*/React.createElement("div", {
+    className: "modal-shade",
+    onClick: onClose
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "modal",
+    onClick: e => e.stopPropagation(),
+    style: {
+      maxWidth: 520,
+      maxHeight: "90vh",
+      overflowY: "auto"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "modal-h"
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    className: "tag"
+  }, "IMPORT CSV"), /*#__PURE__*/React.createElement("div", {
+    className: "ttl"
+  }, "Load match data from CSV")), /*#__PURE__*/React.createElement("button", {
+    className: "modal-close",
+    onClick: onClose
+  }, /*#__PURE__*/React.createElement(Icon, {
+    name: "close",
+    size: 14
+  }))), /*#__PURE__*/React.createElement("div", {
+    className: "modal-b",
+    style: {
+      padding: "0 18px 20px"
+    }
+  }, step === "upload" && /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("p", {
+    style: {
+      fontFamily: "var(--fm)",
+      fontSize: 12,
+      color: "var(--t2)",
+      lineHeight: 1.6,
+      marginBottom: 16
+    }
+  }, "Upload a CSV file exported from your previous app. The importer will attempt to auto-detect column mappings \u2014 you can review and correct them before importing."), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 10,
+      marginBottom: 14
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontFamily: "var(--fm)",
+      fontSize: 11,
+      color: "var(--t3)",
+      marginBottom: 4
+    }
+  }, "Home team name"), /*#__PURE__*/React.createElement("input", {
+    value: homeName,
+    onChange: e => setHomeName(e.target.value),
+    placeholder: "e.g. Kerry",
+    className: "inp",
+    style: {
+      width: "100%"
+    }
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontFamily: "var(--fm)",
+      fontSize: 11,
+      color: "var(--t3)",
+      marginBottom: 4
+    }
+  }, "Away team name"), /*#__PURE__*/React.createElement("input", {
+    value: awayName,
+    onChange: e => setAwayName(e.target.value),
+    placeholder: "e.g. Dublin",
+    className: "inp",
+    style: {
+      width: "100%"
+    }
+  }))), /*#__PURE__*/React.createElement("label", {
+    style: {
+      display: "block",
+      padding: "28px 16px",
+      border: "2px dashed var(--line-soft)",
+      borderRadius: 10,
+      textAlign: "center",
+      cursor: "pointer",
+      background: "var(--bg-2)"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontFamily: "var(--fd)",
+      fontSize: 14,
+      fontWeight: 700,
+      color: "var(--t1)",
+      marginBottom: 6
+    }
+  }, "Choose CSV file"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontFamily: "var(--fm)",
+      fontSize: 11,
+      color: "var(--t3)"
+    }
+  }, "Tap to browse \xB7 .csv files only"), /*#__PURE__*/React.createElement("input", {
+    type: "file",
+    accept: ".csv,text/csv",
+    onChange: handleFile,
+    style: {
+      display: "none"
+    }
+  })), error && /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontFamily: "var(--fm)",
+      fontSize: 11,
+      color: "var(--away)",
+      marginTop: 8
+    }
+  }, error)), step === "map" && /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontFamily: "var(--fm)",
+      fontSize: 12,
+      color: "var(--t2)",
+      marginBottom: 12
+    }
+  }, "Found ", /*#__PURE__*/React.createElement("strong", null, rows.length, " rows"), " with ", /*#__PURE__*/React.createElement("strong", null, headers.length, " columns"), ". Map each field to a CSV column (or leave blank to skip)."), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      gap: 8,
+      marginBottom: 16
+    }
+  }, Object.entries(FIELD_LABELS).map(([f, lab]) => {
+    var _rows$;
+    return /*#__PURE__*/React.createElement("div", {
+      key: f,
+      style: {
+        display: "flex",
+        alignItems: "center",
+        gap: 10
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontFamily: "var(--fm)",
+        fontSize: 11,
+        color: "var(--t2)",
+        width: 130,
+        flexShrink: 0
+      }
+    }, lab, !OPTIONAL_FIELDS.has(f) && /*#__PURE__*/React.createElement("span", {
+      style: {
+        color: "var(--away)"
+      }
+    }, "*")), /*#__PURE__*/React.createElement("select", {
+      value: mapping[f] || "",
+      onChange: e => setMapping(m => ({
+        ...m,
+        [f]: e.target.value || undefined
+      })),
+      style: {
+        flex: 1,
+        fontFamily: "var(--fm)",
+        fontSize: 11,
+        padding: "5px 8px",
+        borderRadius: 6,
+        background: "var(--bg-2)",
+        border: "1px solid var(--line-soft)",
+        color: "var(--t1)"
+      }
+    }, /*#__PURE__*/React.createElement("option", {
+      value: ""
+    }, "\u2014 skip \u2014"), headers.map(h => /*#__PURE__*/React.createElement("option", {
+      key: h,
+      value: h
+    }, h))), mapping[f] && /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontFamily: "var(--fm)",
+        fontSize: 10,
+        color: "var(--t3)",
+        width: 80,
+        overflow: "hidden",
+        textOverflow: "ellipsis",
+        whiteSpace: "nowrap"
+      }
+    }, "e.g. ", ((_rows$ = rows[0]) == null ? void 0 : _rows$[mapping[f]]) || ""));
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 10
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    className: "tbtn",
+    onClick: () => setStep("upload")
+  }, "\u2190 Back"), /*#__PURE__*/React.createElement("button", {
+    className: "tbtn primary",
+    onClick: handleMap,
+    style: {
+      flex: 1
+    }
+  }, "Preview import \u2192"))), step === "preview_gaascores" && gaascores && (() => {
+    // Re-parse with current HAL setting so preview reflects toggle
+    const parsed = parseGAAScoresCSV(gaascores.text, gaaHAL);
+    const evs = parsed.events;
+    const shots = evs.filter(e => e.type === "shot");
+    const kos = evs.filter(e => e.type === "kickout");
+    const tos = evs.filter(e => e.type === "turnover");
+    const fouls = evs.filter(e => e.type === "foul");
+    const subs = evs.filter(e => e.type === "sub");
+    const hShots = shots.filter(e => e.team === "home");
+    const aShots = shots.filter(e => e.team === "away");
+    const hScored = hShots.filter(s => ["goal", "point", "2point"].includes(s.outcome));
+    const aScored = aShots.filter(s => ["goal", "point", "2point"].includes(s.outcome));
+    const hG = hShots.filter(s => s.outcome === "goal").length;
+    const hP2 = hShots.filter(s => s.outcome === "2point").length;
+    const hP = hShots.filter(s => s.outcome === "point").length;
+    const aG = aShots.filter(s => s.outcome === "goal").length;
+    const aP2 = aShots.filter(s => s.outcome === "2point").length;
+    const aP = aShots.filter(s => s.outcome === "point").length;
+    return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+      style: {
+        padding: "10px 12px",
+        background: "var(--bg-2)",
+        borderRadius: 8,
+        border: "1px solid var(--line-soft)",
+        marginBottom: 12
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontFamily: "var(--fd)",
+        fontSize: 12,
+        fontWeight: 700,
+        color: "var(--score)",
+        marginBottom: 6
+      }
+    }, "GAAScores format detected \u2713"), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontFamily: "var(--fm)",
+        fontSize: 11,
+        color: "var(--t2)",
+        marginBottom: 8
+      }
+    }, /*#__PURE__*/React.createElement("strong", null, parsed.homeTeam), " vs ", /*#__PURE__*/React.createElement("strong", null, parsed.awayTeam)), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "grid",
+        gridTemplateColumns: "repeat(5,1fr)",
+        gap: 6,
+        marginBottom: 10
+      }
+    }, [["Shots", shots.length], ["Kickouts", kos.length], ["T/Os", tos.length], ["Fouls", fouls.length], ["Subs", subs.length]].map(([l, n]) => /*#__PURE__*/React.createElement("div", {
+      key: l,
+      style: {
+        background: "var(--bg-3)",
+        borderRadius: 6,
+        padding: "6px 4px",
+        textAlign: "center"
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontFamily: "var(--fd)",
+        fontSize: 14,
+        fontWeight: 700,
+        color: "var(--t1)"
+      }
+    }, n), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontFamily: "var(--fCond)",
+        fontSize: 9,
+        color: "var(--t3)",
+        letterSpacing: "0.06em",
+        textTransform: "uppercase"
+      }
+    }, l)))), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        justifyContent: "space-around",
+        marginBottom: 10,
+        padding: "8px",
+        background: "var(--bg-1)",
+        borderRadius: 6
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        textAlign: "center"
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontFamily: "var(--fm)",
+        fontSize: 10,
+        color: "var(--home)",
+        marginBottom: 2
+      }
+    }, parsed.homeTeam), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontFamily: "var(--fd)",
+        fontSize: 14,
+        fontWeight: 800,
+        color: "var(--t1)"
+      }
+    }, hG, "-", hP2, "-", hP), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontFamily: "var(--fm)",
+        fontSize: 10,
+        color: "var(--t3)"
+      }
+    }, hScored.length, "/", hShots.length, " conv")), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontFamily: "var(--fd)",
+        fontSize: 16,
+        fontWeight: 700,
+        color: "var(--t3)",
+        alignSelf: "center"
+      }
+    }, "vs"), /*#__PURE__*/React.createElement("div", {
+      style: {
+        textAlign: "center"
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontFamily: "var(--fm)",
+        fontSize: 10,
+        color: "var(--away)",
+        marginBottom: 2
+      }
+    }, parsed.awayTeam), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontFamily: "var(--fd)",
+        fontSize: 14,
+        fontWeight: 800,
+        color: "var(--t1)"
+      }
+    }, aG, "-", aP2, "-", aP), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontFamily: "var(--fm)",
+        fontSize: 10,
+        color: "var(--t3)"
+      }
+    }, aScored.length, "/", aShots.length, " conv"))), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        alignItems: "center",
+        gap: 10,
+        padding: "8px 10px",
+        background: "var(--bg-3)",
+        borderRadius: 6
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        flex: 1
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontFamily: "var(--fd)",
+        fontSize: 11,
+        fontWeight: 600,
+        color: "var(--t1)"
+      }
+    }, "H1 attacking direction"), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontFamily: "var(--fm)",
+        fontSize: 10,
+        color: "var(--t3)"
+      }
+    }, "Which end does ", parsed.homeTeam, " attack in the first half?")), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        gap: 4
+      }
+    }, [["← Left", true], ["Right →", false]].map(([lab, val]) => /*#__PURE__*/React.createElement("button", {
+      key: lab,
+      onClick: () => setGaaHAL(val),
+      style: {
+        padding: "6px 10px",
+        borderRadius: 6,
+        fontFamily: "var(--fd)",
+        fontSize: 11,
+        fontWeight: 600,
+        background: gaaHAL === val ? "var(--home)" : "var(--bg-2)",
+        color: gaaHAL === val ? "#fff" : "var(--t2)",
+        border: "1px solid " + (gaaHAL === val ? "var(--home)" : "var(--line-soft)")
+      }
+    }, lab))))), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        gap: 10
+      }
+    }, /*#__PURE__*/React.createElement("button", {
+      className: "tbtn",
+      onClick: () => setStep("upload")
+    }, "\u2190 Back"), /*#__PURE__*/React.createElement("button", {
+      className: "tbtn primary",
+      onClick: async () => {
+        const finalParsed = parseGAAScoresCSV(gaascores.text, gaaHAL);
+        const id = `gaa:match:${Date.now()}`;
+        const match = {
+          id,
+          homeTeam: {
+            name: finalParsed.homeTeam,
+            players: [],
+            accent: "#3b82f6"
+          },
+          awayTeam: {
+            name: finalParsed.awayTeam,
+            players: [],
+            accent: "#ef4444"
+          },
+          events: finalParsed.events,
+          savedAt: Date.now(),
+          halfLength: 30,
+          phase: "ft",
+          half: 2,
+          seconds: 0,
+          homeAttacksLeft: gaaHAL
+        };
+        await storage.set(id, JSON.stringify(match));
+        setStep("done");
+        if (onImport) onImport(match);
+      },
+      style: {
+        flex: 1
+      }
+    }, "Import ", evs.length, " events \u2192")));
+  })(), step === "preview" && /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontFamily: "var(--fm)",
+      fontSize: 12,
+      color: "var(--t2)",
+      marginBottom: 10
+    }
+  }, "Preview of first ", preview.length, " events (out of ", rows.length, " total):"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      overflowX: "auto",
+      marginBottom: 14
+    }
+  }, /*#__PURE__*/React.createElement("table", {
+    style: {
+      width: "100%",
+      borderCollapse: "collapse",
+      fontSize: 10,
+      minWidth: 360
+    }
+  }, /*#__PURE__*/React.createElement("thead", null, /*#__PURE__*/React.createElement("tr", {
+    style: {
+      borderBottom: "1px solid var(--line-soft)"
+    }
+  }, ["#", "Type", "Team", "Half", "Time", "Outcome/Result", "Source"].map(h => /*#__PURE__*/React.createElement("th", {
+    key: h,
+    style: {
+      padding: "4px 6px",
+      fontFamily: "var(--fCond)",
+      color: "var(--t3)",
+      fontSize: 9,
+      textTransform: "uppercase",
+      letterSpacing: "0.07em",
+      textAlign: "left"
+    }
+  }, h)))), /*#__PURE__*/React.createElement("tbody", null, preview.map((e, i) => /*#__PURE__*/React.createElement("tr", {
+    key: i,
+    style: {
+      borderBottom: "1px solid var(--bg-3)",
+      background: i % 2 === 0 ? "var(--bg-2)" : "transparent"
+    }
+  }, /*#__PURE__*/React.createElement("td", {
+    style: {
+      padding: "4px 6px",
+      color: "var(--t3)"
+    }
+  }, i + 1), /*#__PURE__*/React.createElement("td", {
+    style: {
+      padding: "4px 6px",
+      color: "var(--t1)",
+      fontWeight: 600
+    }
+  }, e.type), /*#__PURE__*/React.createElement("td", {
+    style: {
+      padding: "4px 6px",
+      color: e.team === "home" ? "var(--home)" : "var(--away)"
+    }
+  }, e.team), /*#__PURE__*/React.createElement("td", {
+    style: {
+      padding: "4px 6px",
+      color: "var(--t2)"
+    }
+  }, "H", e.half), /*#__PURE__*/React.createElement("td", {
+    style: {
+      padding: "4px 6px",
+      color: "var(--t2)"
+    }
+  }, Math.floor(e.time / 60), ":", String(Math.round(e.time % 60)).padStart(2, "0")), /*#__PURE__*/React.createElement("td", {
+    style: {
+      padding: "4px 6px",
+      color: "var(--t1)"
+    }
+  }, e.outcome || e.result || "–"), /*#__PURE__*/React.createElement("td", {
+    style: {
+      padding: "4px 6px",
+      color: "var(--t3)"
+    }
+  }, e.source || "–")))))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 10
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    className: "tbtn",
+    onClick: () => setStep("map")
+  }, "\u2190 Remap"), /*#__PURE__*/React.createElement("button", {
+    className: "tbtn primary",
+    onClick: handleImport,
+    style: {
+      flex: 1
+    }
+  }, "Import ", rows.length, " events as new match"))), step === "done" && /*#__PURE__*/React.createElement("div", {
+    style: {
+      textAlign: "center",
+      padding: "20px 0"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontFamily: "var(--fd)",
+      fontSize: 32,
+      marginBottom: 8
+    }
+  }, "\u2713"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontFamily: "var(--fd)",
+      fontSize: 15,
+      fontWeight: 700,
+      color: "var(--score)",
+      marginBottom: 8
+    }
+  }, "Import complete"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontFamily: "var(--fm)",
+      fontSize: 12,
+      color: "var(--t2)",
+      marginBottom: 18
+    }
+  }, rows.length, " events saved as a new match."), /*#__PURE__*/React.createElement("button", {
+    className: "tbtn primary",
+    onClick: onClose
+  }, "Done")))));
 }
 
 // ════════════════════════════════════════════════════════════════════
@@ -12977,7 +14388,8 @@ function App() {
   const reportFrameRef = useRef(null);
   const [showSync, setShowSync] = useState(false);
   const [showHTReport, setShowHTReport] = useState(false);
-  const [showThrowIn, setShowThrowIn] = useState(null); // null | "h1" | "h2"
+  const [showThrowIn, setShowThrowIn] = useState(null);
+  const [showCSVImport, setShowCSVImport] = useState(false); // null | "h1" | "h2"
   const [syncMode, setSyncMode] = useState(null); // null | "host" | "viewer"
   const [syncCode, setSyncCode] = useState("");
   const [syncJoinCode, setSyncJoinCode] = useState("");
@@ -13114,7 +14526,8 @@ function App() {
         half,
         phase,
         venue,
-        halfLength
+        halfLength,
+        homeAttacksLeft
       };
       await saveMatch(data);
       setLoadedMatchId(id);
@@ -13131,9 +14544,10 @@ function App() {
     setEvents(match.events || []);
     setSeconds(match.seconds || 0);
     setHalf(match.half || 1);
-    setPhase(match.phase || "pre");
+    setPhase(match.phase || "ft");
     setVenue(match.venue || "");
     setHalfLength(match.halfLength || 30);
+    if (match.homeAttacksLeft !== undefined) setHomeAttacksLeft(match.homeAttacksLeft);
     setLoadedMatchId(match.id);
     setLastUndo(null);
     setScreen("match");
@@ -13394,12 +14808,13 @@ function App() {
   };
   const TABS = [["actions", "bolt", "Actions", "entry"], ["live", "chart", "Live", null], ["detailed", "list", "Detail", null], ["lineup", "users", "Lineup", null], ["map", "pin", "Map", null], ["chart", "split", "Chart", null], ["log", "doc", "Log", null]];
   if (screen === "setup") {
-    return /*#__PURE__*/React.createElement(SetupScreen, {
+    return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(SetupScreen, {
       onStart: () => {
         setScreen("match");
       },
       onViewSaved: () => setScreen("saved"),
       onViewSeason: () => setScreen("season"),
+      onImportCSV: () => setShowCSVImport(true),
       homeTeam: homeTeam,
       awayTeam: awayTeam,
       setHomeTeam: setHomeTeam,
@@ -13412,7 +14827,10 @@ function App() {
       setHomeAttacksLeft: setHomeAttacksLeft,
       conditions: conditions,
       setConditions: setConditions
-    });
+    }), showCSVImport && /*#__PURE__*/React.createElement(CSVImportModal, {
+      onClose: () => setShowCSVImport(false),
+      onImport: () => setShowCSVImport(false)
+    }));
   }
   if (screen === "saved") {
     return /*#__PURE__*/React.createElement(SavedMatchesScreen, {
@@ -13813,7 +15231,12 @@ function App() {
     onClick: () => {
       stopSync();
     }
-  }, "Try again"))))), showThrowIn && /*#__PURE__*/React.createElement(ThrowInModal, {
+  }, "Try again"))))), showCSVImport && /*#__PURE__*/React.createElement(CSVImportModal, {
+    onClose: () => setShowCSVImport(false),
+    onImport: () => {
+      setShowCSVImport(false);
+    }
+  }), showThrowIn && /*#__PURE__*/React.createElement(ThrowInModal, {
     half: showThrowIn,
     homeTeam: homeTeam,
     awayTeam: awayTeam,
@@ -14340,11 +15763,21 @@ function SavedMatchesScreen({
 }) {
   const [matches, setMatches] = useState(null);
   const [search, setSearch] = useState("");
+  const [pendingDelete, setPendingDelete] = useState(null); // id awaiting confirmation
+
   useEffect(() => {
     listMatches().then(setMatches);
   }, []);
   const handleDelete = async id => {
-    if (!confirm("Delete this saved match?")) return;
+    if (pendingDelete !== id) {
+      // First click — ask for confirmation inline
+      setPendingDelete(id);
+      // Auto-cancel after 4s if user doesn't confirm
+      setTimeout(() => setPendingDelete(pd => pd === id ? null : pd), 4000);
+      return;
+    }
+    // Second click — confirmed, delete
+    setPendingDelete(null);
     await deleteMatch(id);
     listMatches().then(setMatches);
   };
@@ -14465,7 +15898,8 @@ function SavedMatchesScreen({
       className: "num"
     }, (m.events || []).length), /*#__PURE__*/React.createElement("td", {
       style: {
-        textAlign: "right"
+        textAlign: "right",
+        whiteSpace: "nowrap"
       }
     }, /*#__PURE__*/React.createElement("button", {
       className: "tbtn primary",
@@ -14474,7 +15908,24 @@ function SavedMatchesScreen({
         padding: "4px 11px",
         marginRight: 6
       }
-    }, "Load"), /*#__PURE__*/React.createElement("button", {
+    }, "Load"), pendingDelete === m.id ? /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("button", {
+      className: "tbtn danger",
+      onClick: () => handleDelete(m.id),
+      style: {
+        padding: "4px 10px",
+        marginRight: 4,
+        fontFamily: "var(--fd)",
+        fontSize: 11,
+        fontWeight: 700
+      }
+    }, "Confirm?"), /*#__PURE__*/React.createElement("button", {
+      className: "tbtn",
+      onClick: () => setPendingDelete(null),
+      style: {
+        padding: "4px 8px",
+        fontSize: 11
+      }
+    }, "\u2715")) : /*#__PURE__*/React.createElement("button", {
       className: "tbtn danger",
       onClick: () => handleDelete(m.id),
       style: {
