@@ -11623,7 +11623,7 @@ function SeasonStatsSection({
       const homeMatches = all.filter(m => {
         var _m$homeTeam;
         return (((_m$homeTeam = m.homeTeam) == null ? void 0 : _m$homeTeam.name) || "") === homeTeam.name;
-      });
+      }).sort((a, b) => (a.savedAt || 0) - (b.savedAt || 0)); // oldest first
 
       // Aggregate player stats across all home matches
       const playerMap = {}; // playerName → stats
@@ -11944,7 +11944,9 @@ function SeasonTrendsChart({
       const hm = [...all].filter(m => {
         var _m$homeTeam3;
         return (((_m$homeTeam3 = m.homeTeam) == null ? void 0 : _m$homeTeam3.name) || "") === homeTeamName;
-      }).slice(0, 15).reverse().map(m => {
+      }).sort((a, b) => (a.savedAt || 0) - (b.savedAt || 0)) // oldest first → left-to-right progression
+      .slice(-15) // keep last 15 if more than 15
+      .map(m => {
         try {
           var _m$awayTeam;
           const evs = m.events || [];
