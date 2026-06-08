@@ -892,11 +892,13 @@ const DEAD_BALL_SRC=new Set(["free","2free","mark","45m"]);const foulDeadBall=ne
 let pendingResume=null;// When a shot is saved/blocked/hits the post, the ball stays live.
 // Record the shot time so the NEXT possession's startTime uses it,
 // giving correct BIP to whichever team recovers the ball.
-let liveReboundTime=null;const close=endTime=>{if(!cur)return;cur.endTime=endTime;// BIP = time before foul (accumulated) + time after free kick (from _resumeTime)
+let liveReboundTime=null;// When a turnover-lost is logged, record the time so the gaining team's
+// possession startTime is correct even if they don't log an event immediately.
+let pendingTurnoverTime=null;const close=endTime=>{if(!cur)return;cur.endTime=endTime;// BIP = time before foul (accumulated) + time after free kick (from _resumeTime)
 const postBIP=cur._resumeTime!==undefined?Math.max(0,endTime-cur._resumeTime):Math.max(0,endTime-cur.startTime);cur.duration=postBIP+(cur._preBIP||0);cur.ballInPlaySec=cur.duration;const scoreEv=cur.events.find(e=>e.type==="shot"&&["goal","point","2point"].includes(e.outcome));cur.pts=scoreEv?actualPts(scoreEv.outcome):0;cur.shot=cur.events.some(e=>e.type==="shot");poss.push(cur);cur=null;};let pendingTurnoverFor=null;// team that should receive "turnover" origin on their next possession
 sorted.forEach(e=>{if(e.type==="half")return;// -- Kickout -----------------------------------------------------------
 if(e.type==="kickout"){pendingTurnoverFor=null;// kickout always overrides any pending turnover origin
-liveReboundTime=null;// kickout is a formal dead-ball restart, supersedes live rebound
+pendingTurnoverTime=null;liveReboundTime=null;// kickout is a formal dead-ball restart, supersedes live rebound
 close(e.time);const winner=e.result==="won"?e.team:e.team==="home"?"away":"home";cur={team:winner,startTime:e.time,half:e.half||1,events:[],duration:0,ballInPlaySec:0,origin:"kickout"};cur.events.push(e);return;}// -- Foul handling -----------------------------------------------------
 if(e.type==="foul"){if(cur&&cur.team===e.team){// Foul IN possession - the fouling team had the ball and gives it away
 const other=e.team==="home"?"away":"home";pendingTurnoverFor=other;close(e.time);// possession is now null; other team will start a T/O-origin possession on their next event
@@ -914,16 +916,20 @@ pendingResume=null;}// -- Regular events ---------------------------------------
 //  - if cur is null (e.g. H2 starts before a recorded kickout), a foul doesn't
 //    hand possession to the fouling team either
 // T/O won by the team already in possession resets to a fresh turnover possession.
-const newPoss=cur===null?e.type!=="foul":cur.team!==e.team&&(e.type==="_poss"||e.type!=="foul")||cur.team===e.team&&e.type==="turnover"&&e.result==="won";if(newPoss){close(e.time);let origin;// If the ball was live from a save/block/post, the possession started
-// at the shot time — use liveReboundTime so BIP includes that live period.
-const pStartTime=liveReboundTime!==null?liveReboundTime:e.time;if(e.type==="throwIn")origin="throwIn";else if(e.type==="_poss")origin=e._origin||"open";else if(liveReboundTime!==null)origin="rebound";else if(pendingTurnoverFor===e.team)origin="turnover";else if(e.type==="turnover"&&e.result==="won")origin="turnover";else origin="open";liveReboundTime=null;// consumed
+const newPoss=cur===null?e.type!=="foul":cur.team!==e.team&&(e.type==="_poss"||e.type!=="foul")||cur.team===e.team&&e.type==="turnover"&&e.result==="won";if(newPoss){close(e.time);let origin;// Use the earliest known time the gaining team had the ball:
+// 1. Live rebound (save/block/post) → use shot time
+// 2. Turnover won → use when the opponent lost it (pendingTurnoverTime)
+// 3. Otherwise → use current event time
+const pStartTime=liveReboundTime!==null?liveReboundTime:pendingTurnoverFor===e.team&&pendingTurnoverTime!==null?pendingTurnoverTime:e.time;if(e.type==="throwIn")origin="open";// throw-in is an open play restart
+else if(e.type==="_poss")origin=e._origin||"open";else if(liveReboundTime!==null)origin="rebound";else if(pendingTurnoverFor===e.team)origin="turnover";else if(e.type==="turnover"&&e.result==="won")origin="turnover";else origin="open";liveReboundTime=null;// consumed
 pendingTurnoverFor=null;// consumed, clear regardless
-cur={team:e.team,startTime:pStartTime,half:e.half||1,events:[],duration:0,ballInPlaySec:0,origin};}cur.events.push(e);if(e._synthetic)return;// _poss markers only start possessions, never close them
-if(e.type==="shot"&&["goal","point","2point","wideG","wideP","postG","postP","saved","blocked","short","45"].includes(e.outcome)){close(e.time);// Ball stays live after saves, blocks, and post rebounds — the next event
+pendingTurnoverTime=null;cur={team:e.team,startTime:pStartTime,half:e.half||1,events:[],duration:0,ballInPlaySec:0,origin};}cur.events.push(e);if(e._synthetic)return;// _poss markers only start possessions, never close them
+if(e.type==="shot"&&["goal","point","2point","wideG","wideP","postG","postP","saved","saved45","blocked","short","45"].includes(e.outcome)){close(e.time);// Ball stays live after saves, blocks, and post rebounds — the next event
 // determines who gets possession, and their BIP should start from this moment.
-// Wides, goals, points, short, and 45s are dead ball → kickout follows → no rebound.
+// Wides, goals, points, short, 45s, and saved45 (45m awarded) are dead ball.
 if(["postG","postP","saved","blocked"].includes(e.outcome)){liveReboundTime=e.time;}}if(e.type==="turnover"&&e.result==="lost"){close(e.time);liveReboundTime=null;// explicit turnover supersedes any rebound state
 pendingTurnoverFor=e.team==="home"?"away":"home";// other team gains via T/O
+pendingTurnoverTime=e.time;// record when the ball changed hands
 }});if(cur)close(cur.startTime+8);return poss;}// --- Scoring runs (-2 scores in a row for one team) ------------------
 function scoringRuns(events){const sc=[...events].filter(e=>e.type==="shot"&&["goal","point","2point"].includes(e.outcome)).sort((a,b)=>(a.half||1)-(b.half||1)||a.time-b.time);const runs=[];let cur=null;sc.forEach(s=>{if(!cur||cur.team!==s.team){if(cur&&cur.evts.length>=2)runs.push(cur);cur={team:s.team,evts:[s]};}else cur.evts.push(s);});if(cur&&cur.evts.length>=2)runs.push(cur);return runs;}// Consecutive scoreless possessions ending now
 function consecutiveScoreless(possessions,team){const ps=possessions.filter(p=>p.team===team);let mx=0,cur=0;ps.forEach(p=>{const scored=p.events.some(e=>e.type==="shot"&&["goal","point","2point"].includes(e.outcome));if(scored){mx=Math.max(mx,cur);cur=0;}else cur++;});return{max:Math.max(mx,cur),active:cur,total:ps.length};}// expose globally
