@@ -939,9 +939,9 @@ pendingTurnoverTime=null;cur={team:e.team,startTime:pStartTime,half:e.half||1,ev
 if(e.type==="shot"&&["goal","point","2point","wideG","wideP","postG","postP","saved","saved45","blocked","short","45"].includes(e.outcome)){close(e.time);// Ball stays live after saves, blocks, and post rebounds — the next event
 // determines who gets possession, and their BIP should start from this moment.
 // Wides, goals, points, short, 45s, and saved45 (45m awarded) are dead ball.
-if(["postG","postP","saved","blocked"].includes(e.outcome)){liveReboundTime=e.time;}// saved45: a 45m free follows — the 45m kick is NOT a new possession,
+if(["postG","postP","saved","blocked"].includes(e.outcome)){liveReboundTime=e.time;}// saved45 or 45: a 45m free follows — the 45m kick is NOT a new possession,
 // it is a continuation of this attack. Remember where to merge it back.
-if(e.outcome==="saved45"){pending45PossIdx=poss.length-1;}}if(e.type==="turnover"&&e.result==="lost"){close(e.time);liveReboundTime=null;// explicit turnover supersedes any rebound state
+if(e.outcome==="saved45"||e.outcome==="45"){pending45PossIdx=poss.length-1;}}if(e.type==="turnover"&&e.result==="lost"){close(e.time);liveReboundTime=null;// explicit turnover supersedes any rebound state
 pendingTurnoverFor=e.team==="home"?"away":"home";// other team gains via T/O
 pendingTurnoverTime=e.time;// record when the ball changed hands
 }});if(cur)close(cur.startTime+8);return poss;}// --- Scoring runs (-2 scores in a row for one team) ------------------
