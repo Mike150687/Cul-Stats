@@ -574,6 +574,57 @@ img{ display:block; max-width:100%; }
 .col-4{ display:grid; grid-template-columns: repeat(4, 1fr); gap:14px; }
 @media (max-width:900px){ .col-2,.col-3,.col-4{ grid-template-columns:1fr; } }
 
+/* ─── Compact phone/tablet layer ─────────────────────────────────────── */
+@media (max-width:768px){
+  /* Toolbar: single scrollable row instead of tall wrap */
+  .toolbar{ flex-wrap:nowrap; overflow-x:auto; padding:7px 10px; gap:5px;
+    -webkit-overflow-scrolling:touch; scrollbar-width:none; }
+  .toolbar::-webkit-scrollbar{ display:none; }
+  .tbtn{ padding:6px 9px; font-size:10px; white-space:nowrap; flex:0 0 auto; }
+
+  /* Tabs: horizontal scroll, no squashing */
+  .tabs{ overflow-x:auto; scrollbar-width:none; -webkit-overflow-scrolling:touch; }
+  .tabs::-webkit-scrollbar{ display:none; }
+  .tabs > *{ flex-wrap:nowrap !important; min-width:max-content; }
+  .tab{ white-space:nowrap; padding:9px 11px !important; font-size:11px !important; }
+
+  /* Cards & content density */
+  .card{ border-radius:10px; }
+  .card-b{ padding:10px 10px !important; }
+  .card-h{ padding:9px 10px !important; }
+  .card-h h3{ font-size:12px !important; }
+  .sec-aux{ display:none; } /* hide auxiliary card subtitles on phones */
+
+  /* Tables: never break layout — scroll inside the card */
+  .card-b table{ font-size:10.5px; }
+  .card-b{ overflow-x:auto; }
+
+  /* Action buttons: bigger touch targets for pitchside logging */
+  .abtn{ padding:14px 13px; font-size:14px; min-height:52px; }
+
+  /* Modals: near full-screen sheets */
+  .modal{ max-width:96vw !important; width:96vw !important; max-height:94vh !important;
+    border-radius:12px !important; }
+  .modal-b{ padding:12px !important; }
+
+  /* KPI + scoreboard scale-down */
+  .kpi-l{ font-size:9px !important; }
+  .sb-score{ font-size:24px !important; }
+  h1{ font-size:16px !important; }
+
+  /* Content gutters */
+  .content, .page{ padding:8px !important; }
+}
+
+@media (max-width:430px){
+  /* Small phones: tighten further */
+  .tbtn{ padding:5px 8px; font-size:9.5px; }
+  .tbtn svg{ width:10px; height:10px; }
+  .card-b table{ font-size:10px; }
+  .abtn{ min-height:56px; } /* even bigger tap targets where it matters */
+}
+
+
 /* ─── Section title ──────────────────────────────────────────────────── */
 .sec{ display:flex; align-items:center; gap:12px; margin-bottom:12px; }
 .sec-t{ display:inline-flex; align-items:center; gap:9px; font-family:var(--fui); font-size:10px; font-weight:700; letter-spacing:0.18em; text-transform:uppercase; color:var(--t2); white-space:nowrap; }
