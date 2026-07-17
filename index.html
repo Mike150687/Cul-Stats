@@ -495,6 +495,7 @@ body.light .card, .app.light .card{ box-shadow:0 1px 3px oklch(0 0 0 / 0.08); }
 
 @media print{
   body.print-detail #root{ display:none !important; }
+  body.print-detail > .detail-root, body.print-detail > .detail-root *{ visibility:visible !important; }
   body.print-detail > .detail-root{ display:block; width:100%;
     --bg:#fff; --bg-1:#fff; --bg-2:#f4f4f4; --bg-3:#ececec;
     --t1:#111; --t2:#333; --t3:#555; --t4:#888;
@@ -599,7 +600,7 @@ img{ display:block; max-width:100%; }
 /* ─── White print theme (Ctrl/Cmd+P with HT report open) ───────────── */
 @media print{
   html, body{ background:#fff !important; color:#111 !important; }
-  #root > *:not(:has(.modal-shade)){ display:none !important; }
+  body:not(.print-detail) #root > *:not(:has(.modal-shade)){ display:none !important; }
   .modal-shade{ position:static !important; background:#fff !important; }
   .modal-shade > div, .modal{ background:#fff !important; color:#111 !important;
     border:none !important; box-shadow:none !important; max-height:none !important; width:100% !important; max-width:100% !important; }
@@ -889,7 +890,7 @@ img{ display:block; max-width:100%; }
 
 /* ─── Print (Match Report only) ──────────────────────────────────────── */
 @media print {
-  body * { visibility:hidden !important; }
+  body:not(.print-detail) * { visibility:hidden !important; }
   .report-sheet, .report-sheet * { visibility:visible !important; }
   .report-sheet{ position:absolute !important; left:0; top:0; width:100%; padding:24px !important; }
   .report-noprint{ display:none !important; }
@@ -1881,7 +1882,7 @@ const[lockedTeam,setLockedTeam]=useState("home");const[action,setAction]=useStat
 const[scrolled,setScrolled]=useState(false);const[exporting,setExporting]=useState(false);const[reportHTML,setReportHTML]=useState(null);const reportFrameRef=useRef(null);const[showSync,setShowSync]=useState(false);const[theme,setTheme]=useState(()=>{try{return localStorage.getItem("gaa:theme")||"dark";}catch{return"dark";}});const toggleTheme=()=>setTheme(t=>{const n=t==="dark"?"light":"dark";try{localStorage.setItem("gaa:theme",n);}catch{}return n;});useEffect(()=>{document.body.classList.toggle("light",theme==="light");},[theme]);const[showHTReport,setShowHTReport]=useState(false);const[showThrowIn,setShowThrowIn]=useState(null);const[showCSVImport,setShowCSVImport]=useState(false);// null | "h1" | "h2"
 const[syncMode,setSyncMode]=useState(null);// null | "host" | "viewer"
 // ── Access control: full unlock persists per device; viewer access is session-only
-const OWNER_HASH="88f8a5fad021ce0a916cedcae144e3de4beb0d72c2c21a5cd7dd38895fd1083d";const[unlocked,setUnlocked]=useState(()=>{try{return localStorage.getItem("gaa:access:v1")==="full";}catch{return false;}});const[gateCode,setGateCode]=useState("");const[gateErr,setGateErr]=useState("");// Auto-rejoin a live session after the viewer closes/reopens the app
+const OWNER_HASH="3f4f728ff70128e51c2dffff2ae8e35ff479f9fa99cafa8704ddcb0deda61854";const[unlocked,setUnlocked]=useState(()=>{try{return localStorage.getItem("gaa:access:v1")==="full";}catch{return false;}});const[gateCode,setGateCode]=useState("");const[gateErr,setGateErr]=useState("");// Auto-rejoin a live session after the viewer closes/reopens the app
 useEffect(()=>{let stored="";try{stored=localStorage.getItem("gaa:viewerSession")||"";}catch(e){}if(stored&&!syncMode){const t=setTimeout(()=>joinSession(stored),600);return()=>clearTimeout(t);}},[]);const tryUnlock=async()=>{let hex="";try{const buf=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(gateCode.trim()));hex=[...new Uint8Array(buf)].map(b=>b.toString(16).padStart(2,"0")).join("");}catch(err){hex="";}// non-secure context: SHA unavailable — owner unlock requires https
 if(hex===OWNER_HASH){try{localStorage.setItem("gaa:access:v1","full");}catch{}setUnlocked(true);setGateErr("");}else if(/^[a-z0-9-]{4,}$/i.test(gateCode.trim())){// treat as a live sync code — viewer session only, nothing persists
 setSyncCode(gateCode.trim());setGateCode("");joinSession(gateCode.trim());}else setGateErr("Not recognised — enter the owner passcode or a live match code.");};const[syncCode,setSyncCode]=useState("");useEffect(()=>{if(syncMode==="viewer"&&tab==="actions")setTab("live");},[syncMode,tab]);const[showEndSession,setShowEndSession]=useState(false);useEffect(()=>{if(phase==="ft"&&syncMode==="host")setShowEndSession(true);},[phase,syncMode]);const endLiveSession=()=>{try{syncConnsRef.current.forEach(c=>{try{c.send({type:"session_end"});c.close();}catch(e){}});}catch(e){}try{syncPeerRef.current?.destroy();}catch(e){}syncConnsRef.current=[];setSyncMode(null);setSyncCode("");setShowEndSession(false);gFlash("Live session ended — viewers disconnected");};const[syncJoinCode,setSyncJoinCode]=useState("");const[syncStatus,setSyncStatus]=useState("off");// "off"|"hosting"|"connected"|"error"
