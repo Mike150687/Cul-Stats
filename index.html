@@ -502,9 +502,23 @@ body.light .card, .app.light .card{ box-shadow:0 1px 3px oklch(0 0 0 / 0.08); }
     --line:#bbb; --line-soft:#ccc; }
   body.print-detail .detail-root .no-print{ display:none !important; }
   body.print-detail .detail-print-head{ display:block !important; }
-  body.print-detail .detail-root .card{ break-inside:avoid; box-shadow:none; border:1px solid #ccc; }
+  /* Compact print: let big cards split at row boundaries instead of pushing to a new page */
+  body.print-detail > .detail-root{ zoom:0.82; }
+  body.print-detail .detail-root .card{ break-inside:auto; box-shadow:none; border:1px solid #ccc;
+    margin-bottom:8px !important; }
+  body.print-detail .detail-root .card-b{ padding:8px 10px !important; }
+  body.print-detail .detail-root .card-h{ padding:6px 10px !important; }
+  body.print-detail .detail-root table{ font-size:9.5px !important; }
+  body.print-detail .detail-root tr{ break-inside:avoid; }
+  body.print-detail .detail-root th, body.print-detail .detail-root td{ padding:3px 6px !important; }
+  body.print-detail .detail-root .sec{ margin:10px 0 6px !important; }
+  /* cap oversized display numbers so KPI tiles don't dominate pages */
+  body.print-detail .detail-root [style*="font-size: 32px"]{ font-size:18px !important; }
+  body.print-detail .detail-root [style*="font-size: 28px"]{ font-size:16px !important; }
+  body.print-detail .detail-root [style*="font-size: 26px"]{ font-size:15px !important; }
+  body.print-detail .detail-root [style*="font-size: 22px"]{ font-size:14px !important; }
   body.print-detail .detail-root [style*="overflow"]{ overflow:visible !important; max-height:none !important; }
-  @page{ size:A4 portrait; margin:10mm; }
+  @page{ size:A4 portrait; margin:8mm; }
 }
 
 *,*::before,*::after{ box-sizing:border-box; }
