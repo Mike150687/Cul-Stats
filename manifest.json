@@ -1,0 +1,25 @@
+{
+  "name": "GAA Match Tracker",
+  "short_name": "GAA Tracker",
+  "description": "Live match tracking for Gaelic football and hurling — shots, possessions, kickouts, turnovers, xP and live insights.",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0b0c11",
+  "theme_color": "#0b0c11",
+  "categories": ["sports", "utilities"],
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
