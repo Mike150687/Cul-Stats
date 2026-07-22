@@ -1,12 +1,14 @@
 // GAA Match Tracker — Service Worker
 // Cache-first strategy: serve instantly from cache, update in background.
 
-const CACHE = 'gaa-tracker-1784707370';
+const CACHE = 'gaa-tracker-1784707716';
 const ASSETS = [
   './index.html',
   './manifest.json',
-  './icon-192.png',
-  './icon-512.png'
+  './icon-192.png?v=1784707586',
+  './icon-512.png?v=1784707586',
+  './icon-192-maskable.png?v=1784707586',
+  './icon-512-maskable.png?v=1784707586'
 ];
 
 // Install: pre-cache all app assets
@@ -32,8 +34,21 @@ self.addEventListener('fetch', e => {
   // Only handle GET requests for our own origin
   if(e.request.method !== 'GET') return;
 
+  const isImage = /\.(png|jpg|jpeg|svg|webp)(\?|$)/i.test(e.request.url);
+
   e.respondWith(
     caches.open(CACHE).then(async cache => {
+      // Icons/images: network-first so a freshly deployed logo always wins over a stale cache.
+      if(isImage){
+        try{
+          const net = await fetch(e.request);
+          if(net && net.status === 200) cache.put(e.request, net.clone());
+          return net;
+        }catch(err){
+          const c = await cache.match(e.request);
+          if(c) return c;
+        }
+      }
       const cached = await cache.match(e.request);
 
       // Fetch from network in background to keep cache fresh
