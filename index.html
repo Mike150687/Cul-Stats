@@ -572,7 +572,7 @@ img{ display:block; max-width:100%; }
 .sb-mini-team .nm{ font-family:var(--fd); font-weight:700; font-size:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .sb-mini-team .sc{ font-family:var(--fd); font-weight:700; font-size:21px; color:#fff; font-variant-numeric:tabular-nums; white-space:nowrap; }
 .sb-mini-c{ display:flex; align-items:center; gap:8px; white-space:nowrap; }
-.sb-mini-c .ck{ font-family:var(--fd); font-weight:700; font-size:17px; color:#fff; font-variant-numeric:tabular-nums; }
+.sb-mini-c .ck{ font-family:var(--fd); font-weight:700; font-size:17px; color:var(--t1); font-variant-numeric:tabular-nums; }
 
 /* ─── Toolbar ────────────────────────────────────────────────────────── */
 .toolbar{ display:flex; align-items:center; gap:6px; padding:9px 24px; background:var(--bg-1); border-bottom:1px solid var(--line-soft); flex-wrap:wrap; }
@@ -1948,9 +1948,13 @@ const[syncMode,setSyncMode]=useState(null);// null | "host" | "viewer"
 const OWNER_HASH="3f4f728ff70128e51c2dffff2ae8e35ff479f9fa99cafa8704ddcb0deda61854";const[unlocked,setUnlocked]=useState(()=>{try{return localStorage.getItem("gaa:access:v1")==="full";}catch{return false;}});const[gateCode,setGateCode]=useState("");const[gateErr,setGateErr]=useState("");// Sync-on-open: pull the shared account's matches shortly after launch (silent, non-blocking).
 useEffect(()=>{const t=setTimeout(()=>{restoreMatchesFromCloud(loadFirebase).catch(()=>{});},1500);return()=>clearTimeout(t);},[]);// Debounced cloud backup — called after autosaves so recording alone keeps the cloud
 // (and paired devices) up to date without a manual Save. Collapses bursts into one write.
-const cloudSyncTimer=useRef(null);const scheduleCloudBackup=()=>{if(cloudSyncTimer.current)clearTimeout(cloudSyncTimer.current);cloudSyncTimer.current=setTimeout(()=>{backupMatchesToCloud(loadFirebase).catch(()=>{});},8000);};// Auto-rejoin a live session after the viewer closes/reopens the app
-useEffect(()=>{let stored="";try{stored=localStorage.getItem("gaa:viewerSession")||"";}catch(e){}if(stored&&!syncMode){const t=setTimeout(()=>joinSession(stored),600);return()=>clearTimeout(t);}},[]);const tryUnlock=async()=>{let hex="";try{const buf=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(gateCode.trim()));hex=[...new Uint8Array(buf)].map(b=>b.toString(16).padStart(2,"0")).join("");}catch(err){hex="";}// non-secure context: SHA unavailable — owner unlock requires https
-if(hex===OWNER_HASH){try{localStorage.setItem("gaa:access:v1","full");}catch{}setUnlocked(true);setGateErr("");}else if(/^[a-z0-9-]{4,}$/i.test(gateCode.trim())){// treat as a live sync code — viewer session only, nothing persists
+const cloudSyncTimer=useRef(null);const scheduleCloudBackup=()=>{if(cloudSyncTimer.current)clearTimeout(cloudSyncTimer.current);cloudSyncTimer.current=setTimeout(()=>{backupMatchesToCloud(loadFirebase).catch(()=>{});},8000);};// Auto-rejoin a live session after the viewer closes/reopens the app.
+// IMPORTANT: only for actual viewers — never hijack an owner (unlocked) session, which
+// was causing owners to occasionally get pulled to the match screen on first open.
+useEffect(()=>{if(unlocked)return;// owner device: never auto-rejoin
+let stored="";try{stored=localStorage.getItem("gaa:viewerSession")||"";}catch(e){}if(stored&&!syncMode){const t=setTimeout(()=>joinSession(stored),600);return()=>clearTimeout(t);}},[]);const tryUnlock=async()=>{let hex="";try{const buf=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(gateCode.trim()));hex=[...new Uint8Array(buf)].map(b=>b.toString(16).padStart(2,"0")).join("");}catch(err){hex="";}// non-secure context: SHA unavailable — owner unlock requires https
+if(hex===OWNER_HASH){try{localStorage.setItem("gaa:access:v1","full");}catch{}try{localStorage.removeItem("gaa:viewerSession");}catch{}// clear any stale viewer session
+setUnlocked(true);setGateErr("");}else if(/^[a-z0-9-]{4,}$/i.test(gateCode.trim())){// treat as a live sync code — viewer session only, nothing persists
 setSyncCode(gateCode.trim());setGateCode("");joinSession(gateCode.trim());}else setGateErr("Not recognised — enter the owner passcode or a live match code.");};const[syncCode,setSyncCode]=useState("");useEffect(()=>{syncCodeRef.current=syncCode;},[syncCode]);useEffect(()=>{if(syncMode==="viewer"&&tab==="actions")setTab("live");},[syncMode,tab]);const[showEndSession,setShowEndSession]=useState(false);useEffect(()=>{if(phase==="ft"&&syncMode==="host")setShowEndSession(true);},[phase,syncMode]);// Retro-fix attacking directions: recompute every event's halDir from settings —
 // every stat recalculates instantly since all stats derive live from events
 // Wrapped direction setters: changing direction with events logged retro-fixes them
