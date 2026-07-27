@@ -1,7 +1,7 @@
 // GAA Match Tracker — Service Worker
 // Cache-first strategy: serve instantly from cache, update in background.
 
-const CACHE = 'gaa-tracker-1785182938';
+const CACHE = 'gaa-tracker-1785183494';
 const ASSETS = [
   './index.html',
   './manifest.json',
