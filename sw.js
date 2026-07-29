@@ -1,25 +1,25 @@
-// GAA Match Tracker — Service Worker
-// Cache-first strategy: serve instantly from cache, update in background.
+// Cúl Stats — Service Worker
+//
+// The app document is fetched NETWORK-FIRST. Cache-first was serving a stale
+// index.html on every launch, so a freshly deployed build only appeared the time
+// after next — which looked exactly like "I deployed it and nothing changed".
+// The cache is still there as an offline fallback.
 
-const CACHE = 'gaa-tracker-1785329835';
+const CACHE = 'gaa-tracker-1785330873';
 const ASSETS = [
   './index.html',
   './manifest.json',
-  './icon-192.png?v=1784707586',
-  './icon-512.png?v=1784707586',
-  './icon-192-maskable.png?v=1784707586',
-  './icon-512-maskable.png?v=1784707586'
+  './icon-192.png',
+  './icon-512.png',
+  './icon-192-maskable.png',
+  './icon-512-maskable.png'
 ];
 
-// Install: pre-cache all app assets
 self.addEventListener('install', e => {
-  e.waitUntil(
-    caches.open(CACHE).then(cache => cache.addAll(ASSETS))
-  );
+  e.waitUntil(caches.open(CACHE).then(cache => cache.addAll(ASSETS).catch(()=>{})));
   self.skipWaiting();
 });
 
-// Activate: delete old caches
 self.addEventListener('activate', e => {
   e.waitUntil(
     caches.keys().then(keys =>
@@ -29,40 +29,44 @@ self.addEventListener('activate', e => {
   self.clients.claim();
 });
 
-// Fetch: cache-first, background network update
 self.addEventListener('fetch', e => {
-  // Only handle GET requests for our own origin
   if(e.request.method !== 'GET') return;
 
-  const isImage = /\.(png|jpg|jpeg|svg|webp)(\?|$)/i.test(e.request.url);
+  const url = e.request.url;
+  const isDoc   = e.request.mode === 'navigate' || /\.html(\?|$)/i.test(url) || /\/$/.test(new URL(url).pathname);
+  const isImage = /\.(png|jpg|jpeg|svg|webp)(\?|$)/i.test(url);
+  const isMeta  = /manifest\.json(\?|$)/i.test(url);
 
-  e.respondWith(
-    caches.open(CACHE).then(async cache => {
-      // Icons/images: network-first so a freshly deployed logo always wins over a stale cache.
-      if(isImage){
-        try{
-          const net = await fetch(e.request);
-          if(net && net.status === 200) cache.put(e.request, net.clone());
-          return net;
-        }catch(err){
-          const c = await cache.match(e.request);
-          if(c) return c;
+  // The document, the manifest and images always come from the network when we can
+  // reach it, so a new deploy is live immediately. Cache is the offline fallback.
+  if(isDoc || isImage || isMeta){
+    e.respondWith((async () => {
+      try {
+        const net = await fetch(e.request, { cache: 'no-store' });
+        if(net && net.status === 200){
+          const cache = await caches.open(CACHE);
+          cache.put(e.request, net.clone());
         }
+        return net;
+      } catch(err){
+        const cached = await caches.match(e.request);
+        if(cached) return cached;
+        const fallback = await caches.match('./index.html');
+        if(isDoc && fallback) return fallback;
+        throw err;
       }
-      const cached = await cache.match(e.request);
+    })());
+    return;
+  }
 
-      // Fetch from network in background to keep cache fresh
-      const networkFetch = fetch(e.request)
-        .then(response => {
-          if(response && response.status === 200 && response.type === 'basic'){
-            cache.put(e.request, response.clone());
-          }
-          return response;
-        })
-        .catch(() => null);
-
-      // Return cached immediately if available, otherwise wait for network
-      return cached || networkFetch;
-    })
-  );
+  // Anything else: cache first, refreshed in the background.
+  e.respondWith((async () => {
+    const cache = await caches.open(CACHE);
+    const cached = await cache.match(e.request);
+    const net = fetch(e.request).then(r => {
+      if(r && r.status === 200 && r.type === 'basic') cache.put(e.request, r.clone());
+      return r;
+    }).catch(() => null);
+    return cached || net;
+  })());
 });
