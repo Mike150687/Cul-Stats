@@ -1,0 +1,33 @@
+# Cúl Stats — files that must never reach the public repo.
+#
+# The repo is public and serves culstats.ie, so anything committed here is readable by
+# anyone. Only the built site belongs on GitHub: index.html, sw.js, manifest.json, the
+# icons and CNAME.
+
+# Internal notes. Contains working notes, domain rules and commercial intentions.
+CUL-STATS-HANDOVER.md
+*HANDOVER*.md
+
+# App source and build tooling. Not needed to serve the site.
+GAATracker-source.jsx
+GAATracker.jsx
+GAATracker.html
+build_fb.js
+package_pwa.js
+smoke.js
+tests/
+
+# Match data. Contains player names — never publish it.
+*.csv
+*.xlsx
+season-history-*.json
+
+# Working documents
+Cul-Stats-User-Guide.docx
+CUL-STATS-USER-GUIDE.md
+*.pdf
+
+# Editor and OS noise
+.DS_Store
+Thumbs.db
+node_modules/
