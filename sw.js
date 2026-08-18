@@ -5,7 +5,7 @@
 // after next — which looked exactly like "I deployed it and nothing changed".
 // The cache is still there as an offline fallback.
 
-const CACHE = 'gaa-tracker-1786998316';
+const CACHE = 'gaa-tracker-1787038002';
 const ASSETS = [
   './index.html',
   './manifest.json',
