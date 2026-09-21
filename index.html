@@ -1522,7 +1522,7 @@ th.heavy{background:#001a4d;}
 <div class="stats-bar">
   <div class="sb-cell"><div class="sb-lbl">Possession</div><div class="sb-val">${hAgg.possPct}%</div><div class="sb-sub">${esc(hN)}</div></div>
   <div class="sb-cell"><div class="sb-lbl">Shots / Conv</div><div class="sb-val">${hAgg.shots}</div><div class="sb-sub">${hAgg.conv}% conv</div></div>
-  <div class="sb-cell"><div class="sb-val" style="color:${hAgg.xPDelta>=0?"#1a8a3a":"#c0392b"}">${sign(hAgg.xPDelta)}</div><div class="sb-lbl">xP Delta</div></div>
+  <div class="sb-cell"><div class="sb-val" style="color:${hAgg.xPDelta>=0?"#1a8a3a":"#c0392b"}">${sign(hAgg.xPDelta)}</div><div class="sb-lbl">Scored vs deserved</div></div>
   <div class="sb-cell"><div class="sb-val" style="color:${hAgg.toWon-hAgg.toLost>=0?"#1a8a3a":"#c0392b"}">${hAgg.toWon-hAgg.toLost>=0?"+":""}${hAgg.toWon-hAgg.toLost}</div><div class="sb-lbl">T/O Net</div></div>
 </div>
 <div class="sec-title">Match Summary</div>
@@ -1597,7 +1597,7 @@ ${qRow("KO Won → Score",h.koWonScore,a.koWonScore)}
 </tbody></table>
 <div class="page-title">Expected Points — By Quarter</div>
 <table>${colHdr}<tbody>
-${qRow("Total xP",hXPFmt,aXPFmt)}
+${qRow("Expected points (xP)",hXPFmt,aXPFmt)}
 ${qRow("Actual Points",h.ptsQ,a.ptsQ)}
 ${qRow("Scored vs deserved",hXPDiff,aXPDiff)}
 </tbody></table>
