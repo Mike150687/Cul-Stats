@@ -5,7 +5,7 @@
 // after next — which looked exactly like "I deployed it and nothing changed".
 // The cache is still there as an offline fallback.
 
-const CACHE = 'gaa-tracker-1790180891';
+const CACHE = 'gaa-tracker-1790191125';
 const ASSETS = [
   './index.html',
   './manifest.json',
@@ -64,7 +64,7 @@ self.addEventListener('fetch', e => {
     const cache = await caches.open(CACHE);
     const cached = await cache.match(e.request);
     const net = fetch(e.request).then(r => {
-      if(r && r.status === 200 && r.type === 'basic') cache.put(e.request, r.clone());
+      if(r && r.status === 200 && (r.type === 'basic' || /^https:\/\/www\.gstatic\.com\/firebasejs\//.test(url))) cache.put(e.request, r.clone());
       return r;
     }).catch(() => null);
     return cached || net;
