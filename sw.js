@@ -1,4 +1,4 @@
-// Cúl Stats — Service Worker
+// Cul Stats — Service Worker
 //
 // The app document is fetched NETWORK-FIRST. Cache-first was serving a stale
 // index.html on every launch, so a freshly deployed build only appeared the time

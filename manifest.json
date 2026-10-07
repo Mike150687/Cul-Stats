@@ -1,6 +1,6 @@
 {
-  "name": "Cúl Stats",
-  "short_name": "Cúl Stats",
+  "name": "Cul Stats",
+  "short_name": "Cul Stats",
   "description": "GAA match analytics — live logging, stats and reports.",
   "start_url": "./index.html",
   "display": "standalone",
