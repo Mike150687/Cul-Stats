@@ -1,15 +1,17 @@
 {
-  "name": "Cul Stats",
+  "name": "Cul Stats — GAA Stats App",
   "short_name": "Cul Stats",
-  "description": "GAA match analytics — live logging, stats and reports.",
+  "description": "GAA match analytics — live sideline logging, kickout maps, shot maps, and video clips for Gaelic football clubs.",
   "start_url": "./index.html",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#082842",
   "theme_color": "#082842",
+  "prefer_related_applications": false,
   "categories": [
     "sports",
-    "utilities"
+    "utilities",
+    "productivity"
   ],
   "icons": [
     {
@@ -35,6 +37,36 @@
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "https://www.culstats.ie/img/app/phone-record.webp",
+      "sizes": "780x1688",
+      "type": "image/webp",
+      "form_factor": "narrow",
+      "label": "Live sideline match tagging on phone"
+    },
+    {
+      "src": "https://www.culstats.ie/img/app/match-summary.webp",
+      "sizes": "2560x1600",
+      "type": "image/webp",
+      "form_factor": "wide",
+      "label": "Match verdict and three key findings"
+    },
+    {
+      "src": "https://www.culstats.ie/img/app/shot-map.webp",
+      "sizes": "2560x1600",
+      "type": "image/webp",
+      "form_factor": "wide",
+      "label": "Interactive GAA pitch map for shots and kickouts"
+    },
+    {
+      "src": "https://www.culstats.ie/img/app/post-match-report.webp",
+      "sizes": "2560x1600",
+      "type": "image/webp",
+      "form_factor": "wide",
+      "label": "Full-time post-match report and team comparison"
     }
   ],
   "id": "/",
