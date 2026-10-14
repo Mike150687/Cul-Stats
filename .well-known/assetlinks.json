@@ -1,0 +1,8 @@
+[{
+      "relation": ["delegate_permission/common.handle_all_urls"],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "ie.culstats.app",
+        "sha256_cert_fingerprints": ["E8:62:C1:F2:75:68:2F:86:E6:02:5C:DB:6A:E3:64:14:29:69:68:F9:8E:24:D2:3E:DC:B8:8E:78:05:1F:79:CD"]
+      }
+    }]
